@@ -1206,5 +1206,6 @@ package riscv_instr;
   localparam logic [11:0] CSR_MHPMCOUNTER29H = 12'hb9d;
   localparam logic [11:0] CSR_MHPMCOUNTER30H = 12'hb9e;
   localparam logic [11:0] CSR_MHPMCOUNTER31H = 12'hb9f;
+  localparam logic [11:0] CSR_PACE           = 12'hba0;
 endpackage
 // verilog_lint: waive-stop parameter-name-style

@@ -81,6 +81,7 @@ SN_APPS += $(SN_ROOT)/sw/kernels/dnn/batchnorm
 # SN_APPS += $(SN_ROOT)/sw/kernels/dnn/conv2d
 # SN_APPS += $(SN_ROOT)/sw/kernels/dnn/fusedconv
 SN_APPS += $(SN_ROOT)/sw/kernels/dnn/gelu
+SN_APPS += $(SN_ROOT)/sw/kernels/dnn/pace
 SN_APPS += $(SN_ROOT)/sw/kernels/dnn/layernorm
 SN_APPS += $(SN_ROOT)/sw/kernels/dnn/maxpool
 SN_APPS += $(SN_ROOT)/sw/kernels/dnn/softmax

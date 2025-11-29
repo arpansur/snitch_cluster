@@ -144,7 +144,8 @@ package snitch_pkg;
     TCDMDMA    = 0,
     SoCDMAOut  = 1,
     ZeroMemory = 2,
-    BootRom    = 3
+    PaceMemory = 3,
+    BootRom    = 4
   } cluster_slave_dma_e;
 
   typedef enum int unsigned {

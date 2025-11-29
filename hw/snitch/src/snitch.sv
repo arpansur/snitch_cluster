@@ -107,6 +107,7 @@ module snitch import snitch_pkg::*; import riscv_instr::*; #(
   output fpnew_pkg::roundmode_e     fpu_rnd_mode_o,
   output fpnew_pkg::fmt_mode_t      fpu_fmt_mode_o,
   input  fpnew_pkg::status_t        fpu_status_i,
+  output  fpnew_pkg::pace_mode_t    fpu_pace_mode_o,
   /// Consistency Address Queue (CAQ) interface.
   /// Used by FPU to notify Snitch LSU of retired loads/stores.
   input  logic          caq_pvalid_i,
@@ -326,11 +327,13 @@ module snitch import snitch_pkg::*; import riscv_instr::*; #(
     fpnew_pkg::fmt_mode_t  fmode;
     fpnew_pkg::roundmode_e frm;
     fpnew_pkg::status_t    fflags;
+    fpnew_pkg::pace_mode_t pace_mode;
   } fcsr_t;
   fcsr_t fcsr_d, fcsr_q;
 
   assign fpu_rnd_mode_o = fcsr_q.frm;
   assign fpu_fmt_mode_o = fcsr_q.fmode;
+  assign fpu_pace_mode_o = fcsr_q.pace_mode;
 
   // Registers
   `FFAR(pc_q, pc_d, BootAddr, clk_i, rst_i)
@@ -2580,6 +2583,20 @@ module snitch import snitch_pkg::*; import riscv_instr::*; #(
               if (!exception) fcsr_d = fcsr_t'(alu_result[9:0]);
             end else illegal_csr = 1'b1;
           end
+
+          CSR_PACE: begin
+            if (FP_EN) begin
+              csr_rvalue = {30'b0, fcsr_q.fmode};
+              if (!exception) begin 
+                fcsr_d.pace_mode.inv      = alu_result[0];
+                fcsr_d.pace_mode.sqrt     = alu_result[1];
+                fcsr_d.pace_mode.rsqrt    = alu_result[2];
+                fcsr_d.pace_mode.extend   = alu_result[3];
+                fcsr_d.pace_mode.enable   = alu_result[4];
+              end
+            end else illegal_csr = 1'b1;
+          end
+
           // HW cluster barrier
           CSR_BARRIER: begin
             barrier_o = 1'b1;

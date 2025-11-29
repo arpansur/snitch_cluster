@@ -117,6 +117,85 @@ def ctype_from_precision_t(prec):
     }
     return precision_t_to_ctype_map[_integer_precision_t(prec)]
 
+# Returns the C unsigned integer type representing the bit-storage
+# width of a floating-point value of the specified precision
+def hex_ctype_from_precision_t(prec):
+    """Convert `precision_t` type to the corresponding unsigned integer C type
+    used to store the bit-pattern in hexadecimal form.
+
+    Args:
+        prec: A value of type `precision_t`. Accepts both enum strings
+            (e.g. "FP64") and integer enumeration values (e.g. 8).
+
+    Returns:
+        A C unsigned integer type string (e.g. "uint32_t") whose bit-width
+        matches the binary representation of the floating-point value.
+    """
+    precision_t_to_hex_ctype_map = {
+        8: 'uint64_t',   
+        4: 'uint32_t',   
+        2: 'uint16_t',   
+        1: 'uint8_t'     
+    }
+    return precision_t_to_hex_ctype_map[_integer_precision_t(prec)]
+
+
+# Returns the precision_t value (8=FP64, 4=FP32, 2=FP16, 1=FP8)
+def type_to_precision_t(dtype):
+    """Convert various type descriptors to a `precision_t` enumeration value.
+
+    Accepts:
+        - C type strings        (e.g. "double", "float", "__fp16", "__fp8")
+        - Numpy dtypes          (e.g. np.float64, np.float32, np.float16)
+        - PyTorch dtypes        (e.g. torch.float64, torch.float32, torch.float16, torch.float8_e4m3fn)
+        - Python float builtin  (treated as FP64)
+
+    Args:
+        dtype: A type descriptor from C, NumPy, PyTorch, or Python.
+    """
+
+    ctype_to_precision_t_map = {
+        'double': 8,
+        'float': 4,
+        '__fp16': 2,
+        '__fp8': 1
+    }
+
+    numpy_type_to_precision_t_map = {
+        np.float64: 8,
+        np.float32: 4,
+        np.float16: 2
+    }
+
+    torch_type_to_precision_t_map = {
+        torch.float64: 8,
+        torch.float32: 4,
+        torch.float16: 2,
+        torch.float8_e4m3fn: 1
+    }
+
+    hex_type_to_precision_t_map  = {
+        8: 'uint64_t',   
+        4: 'uint32_t',   
+        2: 'uint16_t',   
+        1: 'uint8_t'      
+    }
+
+    if isinstance(dtype, str):
+        if dtype in ctype_to_precision_t_map:
+            return ctype_to_precision_t_map[dtype]
+        if dtype in hex_type_to_precision_t_map:
+            return hex_type_to_precision_t_map[dtype]
+        raise KeyError(f"Unknown C dtype: {dtype}")
+
+
+    if isinstance(dtype, np.dtype) or isinstance(dtype, type(np.float32)):
+        return numpy_type_to_precision_t_map[np.dtype(dtype).type]
+
+    if isinstance(dtype, torch.dtype):
+        return torch_type_to_precision_t_map[dtype]
+
+    raise TypeError(f"Unsupported dtype for precision_t mapping: {dtype}")
 
 def generate_random_array(size, prec='FP64', seed=None):
     """Consistent random array generation for Snitch experiments.
@@ -180,8 +259,11 @@ def _alias_dtype(dtype):
     return ' '.join(tokens)
 
 
-def format_array_declaration(dtype, uid, shape, alignment=None, section=None):
+def format_array_declaration(dtype, uid, shape, alignment=None, section=None, hex_format=False):
     attributes = _variable_attributes(alignment, section)
+    if hex_format:
+        prec = type_to_precision_t(dtype)
+        dtype = hex_ctype_from_precision_t(prec)
     s = f'{_alias_dtype(dtype)} {uid}'
     for dim in shape:
         s += f'[{dim}]'
@@ -192,13 +274,14 @@ def format_array_declaration(dtype, uid, shape, alignment=None, section=None):
     return s
 
 
+
 # In the case of dtype __fp8, array field expects a dictionary of
 # sign, exponent and mantissa arrays
-def format_array_definition(dtype, uid, array, alignment=None, section=None):
+def format_array_definition(dtype, uid, array, alignment=None, section=None, hex_format=False):
     # Definition starts with the declaration stripped off of the terminating semicolon
-    s = format_array_declaration(dtype, uid, array.shape, alignment, section)[:-1]
+    s = format_array_declaration(dtype, uid, array.shape, alignment, section, hex_format=hex_format)[:-1]
     s += ' = '
-    s += format_array_initializer(dtype, array)
+    s += format_array_initializer(dtype, array, hex_format=hex_format)
     s += ';'
     return s
 
@@ -225,16 +308,55 @@ def format_scalar_declaration(dtype, uid, alignment=None, section=None):
         s += ';'
     return s
 
+def float_to_hex(array, prec):
+    if prec == np.float64:
+        bits = np.asarray(array, np.float64).view(np.uint64).item()
+        return f"0x{bits:016X}"
 
-def format_array_initializer(dtype, array):
+    if prec == np.float32:
+        bits = np.asarray(array, np.float32).view(np.uint32).item()
+        return f"0x{bits:08X}"
+
+    if prec == np.float16:
+        bits = np.asarray(array, np.float16).view(np.uint16).item()
+        return f"0x{bits:04X}"
+
+    if prec == "bfloat16":
+        f32 = np.asarray(array, np.float32)
+        bits = f32.view(np.uint32).item()
+        top16 = (bits >> 16) & 0xFFFF
+        return f"0x{top16:04X}"
+
+    raise ValueError(f"Unsupported precision for hex formatting: {prec}")
+
+def format_array_initializer(dtype, array, hex_format=False):
     s = '{\n'
     array = flatten(array)
+    if not hex_format:
+        for el in array:
+            if dtype == '__fp8':
+                el_str = f'{hex(el.bits())}'
+            else:
+                el_str = f'{el}'
+            s += f'\t{el_str},\n'
+        s += '}'
+        return s
+    ctype_to_prec = {
+        'double':  np.float64,
+        'float':   np.float32,
+        '__fp16':  np.float16,
+        '__fp8':   "bfloat16",   # treat fp8 as BF16-style hex for consistency
+    }
+
+    prec = ctype_to_prec.get(dtype, None)
+    if prec is None:
+        raise ValueError(f"Unsupported dtype for hex formatting: {dtype}")
+
+    # Emit IEEE hex for each element
     for el in array:
-        if dtype == '__fp8':
-            el_str = f'{hex(el.bits())}'
-        else:
-            el_str = f'{el}'
+        el_str = float_to_hex(el, prec)
         s += f'\t{el_str},\n'
+
     s += '}'
     return s
 

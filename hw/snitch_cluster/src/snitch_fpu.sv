@@ -14,7 +14,12 @@ module snitch_fpu import snitch_pkg::*; #(
   parameter bit          XFVEC              = 0,
   parameter int unsigned FLEN               = 0,
   parameter bit          RegisterFPUIn      = 0,
-  parameter bit          RegisterFPUOut     = 0
+  parameter bit          RegisterFPUOut     = 0,
+  parameter int unsigned PaceDegree         = 0,
+  parameter int unsigned PaceParts          = 0,
+  parameter int unsigned PaceEps            = 0,
+  parameter int unsigned PaceDataWidth      = 0,
+  parameter int unsigned PaceParamWidth     = 0
 ) (
   input logic                               clk_i,
   input logic                               rst_ni,
@@ -38,7 +43,10 @@ module snitch_fpu import snitch_pkg::*; #(
   output logic [6:0]                        tag_o,
   // Output handshake
   output logic                              out_valid_o,
-  input  logic                              out_ready_i
+  input  logic                              out_ready_i,
+  input  logic [PaceParamWidth-1:0]         pace_param_i,
+  input  fpnew_pkg::pace_mode_t             pace_mode_i
+
 );
 
   localparam fpnew_pkg::fpu_features_t FPUFeatures = '{
@@ -46,7 +54,8 @@ module snitch_fpu import snitch_pkg::*; #(
     EnableVectors:     XFVEC,
     EnableNanBox:      1'b1,
     FpFmtMask:         {RVF, RVD, XF16, XF8, XF16ALT, XF8ALT},
-    IntFmtMask:        {XFVEC && (XF8 || XF8ALT), XFVEC && (XF16 || XF16ALT), 1'b1, 1'b0}
+    IntFmtMask:        {XFVEC && (XF8 || XF8ALT), XFVEC && (XF16 || XF16ALT), 1'b1, 1'b0},
+    PaceFeatures:      {PaceDegree, PaceParts, PaceEps, PaceDataWidth, PaceParamWidth}
   };
 
   typedef struct packed {
@@ -127,7 +136,9 @@ module snitch_fpu import snitch_pkg::*; #(
     .tag_o           ( fpu_out.tag           ),
     .out_valid_o     ( out_valid             ),
     .out_ready_i     ( out_ready             ),
-    .busy_o          (                       )
+    .busy_o          (                       ),
+    .pace_param_i    ( pace_param_i          ),
+    .pace_mode_i     ( pace_mode_i           )
   );
 
   spill_register #(

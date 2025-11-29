@@ -36,7 +36,12 @@ module snitch_fp_ss import snitch_pkg::*; #(
   parameter int unsigned FLEN = DataWidth,
   /// Derived parameter *Do not override*
   parameter type addr_t = logic [AddrWidth-1:0],
-  parameter type data_t = logic [DataWidth-1:0]
+  parameter type data_t = logic [DataWidth-1:0],
+  parameter int unsigned PaceDegree = 0,
+  parameter int unsigned PaceEps = 0,
+  parameter int unsigned PaceParts = 0,
+  parameter int unsigned PaceDataWidth = 0,
+  parameter int unsigned PaceParamWidth = 0
 ) (
   input  logic             clk_i,
   input  logic             rst_i,
@@ -60,6 +65,7 @@ module snitch_fp_ss import snitch_pkg::*; #(
   input  fpnew_pkg::roundmode_e fpu_rnd_mode_i,
   input  fpnew_pkg::fmt_mode_t  fpu_fmt_mode_i,
   output fpnew_pkg::status_t    fpu_status_o,
+  input  fpnew_pkg::pace_mode_t fpu_pace_mode_i,
   // SSR Interface
   output logic  [2:0][4:0] ssr_raddr_o,
   input  data_t [2:0]      ssr_rdata_i,
@@ -80,7 +86,8 @@ module snitch_fp_ss import snitch_pkg::*; #(
   // TODO: is it good enough to assert this at issuing time instead?
   output logic             caq_pvalid_o,
   // Core event strobes
-  output core_events_t core_events_o
+  output core_events_t core_events_o,
+  input  logic [PaceParamWidth-1:0]  fpu_pace_param_i
 );
 
   fpnew_pkg::operation_e  fpu_op;
@@ -2601,27 +2608,35 @@ module snitch_fp_ss import snitch_pkg::*; #(
     .FLEN    ( FLEN    ),
     .FPUImplementation  (FPUImplementation),
     .RegisterFPUIn      (RegisterFPUIn),
-    .RegisterFPUOut     (RegisterFPUOut)
+    .RegisterFPUOut     (RegisterFPUOut),
+    .PaceDataWidth      (PaceDataWidth),
+    .PaceDegree         (PaceDegree),
+    .PaceParts          (PaceParts),
+    .PaceEps            (PaceEps),
+    .PaceParamWidth     (PaceParamWidth)
   ) i_fpu (
-    .clk_i                           ,
-    .rst_ni         ( ~rst_i        ),
-    .hart_id_i      ( hart_id_i     ),
-    .operands_i     ( op            ),
-    .rnd_mode_i     ( fpu_rnd_mode  ),
-    .op_i           ( fpu_op        ),
-    .op_mod_i       ( op_mode       ), // Sign of operand?
-    .src_fmt_i      ( src_fmt       ),
-    .dst_fmt_i      ( dst_fmt       ),
-    .int_fmt_i      ( int_fmt       ),
-    .vectorial_op_i ( vectorial_op  ),
-    .tag_i          ( fpu_tag_in    ),
-    .in_valid_i     ( fpu_in_valid  ),
-    .in_ready_o     ( fpu_in_ready  ),
-    .result_o       ( fpu_result    ),
-    .status_o       ( fpu_status_o  ),
-    .tag_o          ( fpu_tag_out   ),
-    .out_valid_o    ( fpu_out_valid ),
-    .out_ready_i    ( fpu_out_ready )
+    .clk_i                             ,
+    .rst_ni         ( ~rst_i          ),
+    .hart_id_i      ( hart_id_i       ),
+    .operands_i     ( op              ),
+    .rnd_mode_i     ( fpu_rnd_mode    ),
+    .op_i           ( fpu_op          ),
+    .op_mod_i       ( op_mode         ), // Sign of operand?
+    .src_fmt_i      ( src_fmt         ),
+    .dst_fmt_i      ( dst_fmt         ),
+    .int_fmt_i      ( int_fmt         ),
+    .vectorial_op_i ( vectorial_op    ),
+    .tag_i          ( fpu_tag_in      ),
+    .in_valid_i     ( fpu_in_valid    ),
+    .in_ready_o     ( fpu_in_ready    ),
+    .result_o       ( fpu_result      ),
+    .status_o       ( fpu_status_o    ),
+    .tag_o          ( fpu_tag_out     ),
+    .out_valid_o    ( fpu_out_valid   ),
+    .out_ready_i    ( fpu_out_ready   ),
+    .pace_param_i   ( fpu_pace_param_i),
+    .pace_mode_i    ( fpu_pace_mode_i )
+
   );
 
   assign ssr_waddr_o = fpr_waddr;
