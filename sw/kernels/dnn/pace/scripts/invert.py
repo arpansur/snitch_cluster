@@ -47,11 +47,27 @@ def compose_normal(val, k):
     return np.ldexp(val, k)
 
 def invert_preprocess(x, prec=None):
-
     sign, exp, mant = decompose_normal(x, prec=prec)
     return sign, exp, mant
 
-def invert_postprocess(y, sign, exp):
+def sqrt_preprocess(x, prec=None):
+    sign, exp, mant = decompose_normal(x, prec=prec)
+    mant = np.where(exp & 1, mant*2, mant)
+    exp = np.where(exp & 1, exp - 1, exp)
+    return sign, -(exp // 2), mant
+
+def rsqrt_preprocess(x, prec=None):
+    sign, exp, mant = decompose_normal(x, prec=prec)
+    mant = np.where(exp & 1, mant*2, mant)
+    exp = np.where(exp & 1, exp - 1, exp)
+    return sign, (exp // 2), mant
+
+PRE_PROCESS = {
+    "inv": invert_preprocess,
+    "sqrt": sqrt_preprocess,
+    "rsqrt": rsqrt_preprocess
+}
+def invert_sqrt_postprocess(y, sign, exp):
     y = compose_normal(y, -exp)
     return np.where(sign==1, -y, y)
 
@@ -71,14 +87,15 @@ def eps_inv(bypass, y, eps_const):
     return y
 
 
-def invert(x, coeffs, bps, degree, eps=1e-6, eps_const=0.0, prec=None):
+def invert_sqrt(x, coeffs, bps, degree, eps=1e-6, eps_const=0.0, fn_name=None, prec=None):
     x = np.asarray(x)
     np_prec = _FMT[prec]["storage"]
     bypass = eps_check(x, eps, prec)
-    sign, exp, mant = invert_preprocess(x, prec=prec)
+    fn_preprocess = PRE_PROCESS[fn_name]
+    sign, exp, mant = fn_preprocess(x, prec=prec)
     part_id = compute_part_id(mant, bps)
-    y_inv_normal = evaluate_pwpa(mant, coeffs, part_id=part_id, degree=degree, prec=np_prec)
-    y = invert_postprocess(y_inv_normal, sign, exp)
+    y_inv_normal = evaluate_pwpa(mant, coeffs, part_id=part_id, degree=degree, np_prec=np_prec)
+    y = invert_sqrt_postprocess(y_inv_normal, sign, exp)
     y = eps_inv(bypass, y, eps_const)
     return y
 

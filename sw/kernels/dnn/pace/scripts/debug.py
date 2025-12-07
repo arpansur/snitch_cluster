@@ -131,7 +131,7 @@ def clean_value(v):
     except Exception:
         return v
 
-def debug_pwpa(ifmap, ofmap_golden, coeffs : np.ndarray, bst_bps : list, degree : int, prec):
+def debug_pwpa(ifmap, coeffs : np.ndarray, bst_bps : list, degree : int, prec):
     pwpa_traces = []
     part_id, part_trace = debug_compute_part_id(ifmap, bst_bps, prec=prec)
     ofmap_approx, fma_trace = debug_evaluate_pwpa(ifmap, coeffs, part_id, degree, prec=prec)
@@ -146,12 +146,13 @@ def debug_error(ofmap_golden, ofmap_approx):
     error_traces.append(f"  error: {(float(ofmap_approx))-(float(ofmap_golden))}\n")
     return error_traces
 
-def debug_inv(ifmap, ofmap_golden, coeffs : np.ndarray, bst_bps : list, degree : int, prec, np_prec, eps, eps_const):
+def debug_invsqrt(ifmap, ofmap_golden, coeffs : np.ndarray, bst_bps : list, degree : int, prec, np_prec, eps, eps_const, fn_name=None):
     inv_traces = []
     eps_trace, bypass = debug_eps_check(ifmap, eps, np_prec)
-    sign, exp, mant = invert_preprocess(ifmap, prec=prec)
-    ofmap_approx_mant, pwpa_trace = debug_pwpa(mant, ofmap_golden, coeffs, bst_bps, degree, np_prec)
-    ofmap_approx = invert_postprocess(ofmap_approx_mant, sign, exp)
+    func = PRE_PROCESS[fn_name]
+    sign, exp, mant = func(ifmap, prec=prec)
+    ofmap_approx_mant, pwpa_trace = debug_pwpa(mant, coeffs, bst_bps, degree, np_prec)
+    ofmap_approx = invert_sqrt_postprocess(ofmap_approx_mant, sign, exp)
     inv_traces.append(f"  {ifmap} decomposed to sign: {sign}, exp: {exp}, mantissa: {mant}\n")
     inv_traces.append(eps_trace)
     inv_traces.append(pwpa_trace[0])
@@ -162,15 +163,15 @@ def debug_inv(ifmap, ofmap_golden, coeffs : np.ndarray, bst_bps : list, degree :
     inv_traces.append(f"  After eps adjustment {ofmap_approx} {float_to_hex(ofmap_approx, prec=np_prec)}\n") 
     return ofmap_approx, inv_traces
 
-def debug_pwpa_list(ifmap : np.ndarray, ofmap_golden : np.ndarray, coeffs : np.ndarray, bst_bps : list, degree : int, prec, np_prec, func_name=None, eps=None, eps_const=None):
+def debug_pwpa_list(ifmap : np.ndarray, ofmap_golden : np.ndarray, coeffs : np.ndarray, bst_bps : list, degree : int, prec, np_prec, fn_name=None, eps=None, eps_const=None):
     pwpa_traces = []
     for i, feat in enumerate(ifmap):
         feat_process = feat
         pwpa_traces.append([f"\n*********************** Iteration: {i} ************************* \n"])
-        if func_name == "inv":
-            ofmap_approx, pwpa_trace =  debug_inv(feat_process, ofmap_golden[i], coeffs, bst_bps, degree, prec, np_prec, eps, eps_const)
+        if fn_name in ["inv", "sqrt", "rsqrt"]:
+            ofmap_approx, pwpa_trace =  debug_invsqrt(feat_process, ofmap_golden[i], coeffs, bst_bps, degree, prec, np_prec, eps, eps_const, fn_name=fn_name)
         else:
-            ofmap_approx, pwpa_trace =  debug_pwpa(feat_process, ofmap_golden[i], coeffs, bst_bps, degree, np_prec)
+            ofmap_approx, pwpa_trace =  debug_pwpa(feat_process, coeffs, bst_bps, degree, np_prec)
 
         error_traces = debug_error(ofmap_golden[i], ofmap_approx)
         pwpa_traces.append(pwpa_trace)   

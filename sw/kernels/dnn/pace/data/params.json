@@ -2,19 +2,19 @@
 // Solderpad Hardware License, Version 0.51, see LICENSE for details.
 // SPDX-License-Identifier: SHL-0.51
 {
-    "x_min" : 1e-7,
-    "x_max" : 1e-6,
+    "x_min" : 1,
+    "x_max" : 20,
     "n_deg" : 2,
     "n_part": 16,
     "n_test": 1024,
     "seed"  : 1234,
     "eps"   : 5e-7,
     "prec"  : "FP32",
-    "func_name": "inv",
+    "fn_name": "rsqrt",
     "enable" : true,
-    "inv" : true,
+    "inv" : false,
     "sqrt": false,
-    "rsqrt": false,
+    "rsqrt": true,
     "extend": false,
     "enable_fp32"  : false,
     "debug_fname" : "debug.txt"

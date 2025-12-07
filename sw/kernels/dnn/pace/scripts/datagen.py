@@ -24,6 +24,17 @@ from debug import *
 from pwpa import *
 from invert import *
 
+
+BOUNDS = {
+    "silu": (None, None),
+    "exp": (None, None),
+    "gelu": (None, None),
+    "inv": (1, 2),
+    "sqrt": (1, 4),
+    "rsqrt": (1, 4),
+}
+
+
 def arrange_params(np_type, bst_bps, coeffs, eps=10**-6, eps_const=0):
     params = []
     coeff_shape = coeffs.shape
@@ -36,25 +47,22 @@ def arrange_params(np_type, bst_bps, coeffs, eps=10**-6, eps_const=0):
     params.append(clean_value(np_type(eps_const)))
     return params
 
-def execute_pwpa(x_min, x_max, n_part, degree, n_tests, func_name, prec):
-    raw_bps = generate_bps(x_min, x_max, n_part, mode="linear")
+def execute_pwpa(x_min, x_max, n_part, degree, n_tests, fn_name, prec, np_prec, eps, eps_const):
+    bounds = BOUNDS[fn_name]
+    min_bound = x_min if bounds[0] == None else bounds[0]
+    max_bound = x_max if bounds[1] == None else bounds[1]
+    print(min_bound, max_bound)
+    raw_bps = generate_bps(min_bound, max_bound, n_part, mode="linear")
     bst_bps = build_bst_bps(raw_bps)
-    coeffs  = fit_pwpa(raw_bps, degree=degree, func=ACTIVATIONS[func_name])
+    coeffs  = fit_pwpa(raw_bps, degree=degree, func=ACTIVATIONS[fn_name])
     ifmap   = np.linspace(x_min, x_max, n_tests)
     np.random.shuffle(ifmap)
-    part_id = compute_part_id(ifmap, raw_bps)
-    ofmap_golden = golden_model(ifmap, func_name)
-    ofmap_pwpa   = evaluate_pwpa(ifmap, coeffs, part_id=part_id, degree=degree, prec=prec)
-    return ifmap, ofmap_golden, ofmap_pwpa, raw_bps, bst_bps, coeffs
-
-def execute_inv_pwpa(x_min, x_max, n_part, degree, n_tests, func_name, prec, eps, eps_const):
-    raw_bps = generate_bps(1, 2, n_part, mode="linear")
-    bst_bps = build_bst_bps(raw_bps)
-    coeffs  = fit_pwpa(raw_bps, degree=degree, func=ACTIVATIONS[func_name])
-    ifmap   = np.linspace(x_min, x_max, n_tests)
-    np.random.shuffle(ifmap)
-    ofmap_golden = golden_model(ifmap, func_name)
-    ofmap_pwpa = invert(ifmap, coeffs, raw_bps, degree, eps=eps, eps_const=eps_const, prec=prec)
+    ofmap_golden = golden_model(ifmap, fn_name)
+    if fn_name in ["inv", "sqrt", "rsqrt"]:
+        ofmap_pwpa = invert_sqrt(ifmap, coeffs, raw_bps, degree, eps=eps, eps_const=eps_const, prec=prec, fn_name=fn_name)
+    else:
+        part_id = compute_part_id(ifmap, raw_bps)
+        ofmap_pwpa   = evaluate_pwpa(ifmap, coeffs, part_id=part_id, degree=degree, np_prec=np_prec)
     return ifmap, ofmap_golden, ofmap_pwpa, raw_bps, bst_bps, coeffs
 
 def generate_csr_defines(keys):
@@ -78,7 +86,7 @@ def emit_header(**kwargs):
     numpy_type   = data_utils.numpy_type_from_precision_t(prec)
     int_type = _integer_precision_t(prec)
     hex_ctype = data_utils.hex_ctype_from_precision_t(int_type)
-    func_name=kwargs["func_name"]
+    fn_name=kwargs["fn_name"]
     x_min  = kwargs["x_min"]
     x_max  = kwargs["x_max"]
     n_deg  = kwargs["n_deg"]
@@ -88,17 +96,13 @@ def emit_header(**kwargs):
     fplot  = kwargs["debug_plot"] 
     eps = kwargs["eps"]
     eps_const = None
-    if func_name in ["inv"]:
-        fn = ACTIVATIONS[func_name]
+    if fn_name in ["inv", "sqrt", "rsqrt"]:
+        fn = ACTIVATIONS[fn_name]
         eps_const = fn(eps)
-        ifmap, ofmap_golden, ofmap_pwpa, raw_bps, bst_bps, coeffs = execute_inv_pwpa(
-            x_min, x_max, n_part, n_deg, n_test, func_name, prec=prec, eps=eps, eps_const=eps_const
-        )
-    else: 
-        ifmap, ofmap_golden, ofmap_pwpa, raw_bps, bst_bps, coeffs = execute_pwpa(
-            x_min, x_max, n_part, n_deg, n_test, func_name, numpy_type
-        )
-    pwpa_traces  = debug_pwpa_list(ifmap, ofmap_golden, coeffs, bst_bps, n_deg, prec=prec, np_prec=numpy_type, func_name=func_name, eps=eps, eps_const=eps_const)
+    ifmap, ofmap_golden, ofmap_pwpa, raw_bps, bst_bps, coeffs = execute_pwpa(
+        x_min, x_max, n_part, n_deg, n_test, fn_name, prec=prec, np_prec=numpy_type, eps=eps, eps_const=eps_const
+    )
+    pwpa_traces  = debug_pwpa_list(ifmap, ofmap_golden, coeffs, bst_bps, n_deg, prec=prec, np_prec=numpy_type, fn_name=fn_name, eps=eps, eps_const=eps_const)
     debug_plot_pwpa(ifmap, ofmap_golden, ofmap_pwpa, fplot)
     write_debug_file(fname, raw_bps, bst_bps, coeffs, pwpa_traces, prec=numpy_type)
 

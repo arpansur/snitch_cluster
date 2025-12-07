@@ -33,20 +33,20 @@ def compute_part_id(ifmap: np.ndarray, bps: list):
     part_id[ifmap_fp64==bps_fp64[0]] = 0
     return part_id
 
-def evaluate_pwpa(ifmap: np.ndarray, coeffs: np.ndarray, part_id: np.ndarray, degree, prec):
-    ifmap_prec  = np.asarray(ifmap, dtype=prec)
+def evaluate_pwpa(ifmap: np.ndarray, coeffs: np.ndarray, part_id: np.ndarray, degree, np_prec):
+    ifmap_prec  = np.asarray(ifmap, dtype=np_prec)
     ifmap_fp64  = np.asarray(ifmap_prec, dtype=np.float64)
-    coeffs_prec = np.asarray(coeffs, dtype=prec)
+    coeffs_prec = np.asarray(coeffs, dtype=np_prec)
     coeffs_fp64 = np.asarray(coeffs_prec, dtype=np.float64)
-    ofmap       = np.zeros_like(ifmap, dtype=prec)
+    ofmap       = np.zeros_like(ifmap, dtype=np_prec)
 
     for idx, feat in enumerate(ifmap_fp64):
         coeffs_part = coeffs_fp64[part_id[idx]]
         y = coeffs_part[degree]
         for deg in range(degree - 1, -1, -1):
             y = y * feat + coeffs_part[deg]
-            y = np.asarray(y, dtype=prec).astype(np.float64)
-        ofmap[idx] = np.asarray(y, dtype=prec)
+            y = np.asarray(y, dtype=np_prec).astype(np.float64)
+        ofmap[idx] = np.asarray(y, dtype=np_prec)
     return ofmap
 
 def build_bst_bps(bps):
