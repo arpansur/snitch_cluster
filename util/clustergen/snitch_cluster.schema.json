@@ -107,6 +107,14 @@
                         64
                     ]
                 },
+                "pace_mem_size": {
+                    "type": "number",
+                    "description": "Address region size reserved for the PACE parameter memory in KiByte.",
+                    "examples": [
+                        128,
+                        64
+                    ]
+                },
                 "ext_mem_size": {
                     "type": "number",
                     "description": "Address region size reserved for an external slave in KiByte.",
@@ -135,6 +143,36 @@
                     "type": "number",
                     "description": "Data bus size of the integer core (everything except the DMA), must be 32 or 64. A double precision FPU requires 64 bit data length.",
                     "default": 64
+                },
+                "pace_degree": {
+                    "type": "number",
+                    "description": "Polynomial degree used by the PACE approximation engine.",
+                    "default": 2
+                },
+                "pace_parts": {
+                    "type": "number",
+                    "description": "Number of partitions stored in the PACE parameter memory.",
+                    "default": 16
+                },
+                "pace_eps": {
+                    "type": "number",
+                    "description": "Whether epsilon constants are stored in the PACE parameter memory.",
+                    "default": 1
+                },
+                "pace_data_width": {
+                    "type": "number",
+                    "description": "Data width of each PACE parameter entry.",
+                    "default": 32
+                },
+                "pace_pipe_dist": {
+                    "type": "number",
+                    "description": "Pipeline-distance setting forwarded to the PACE-enabled FPnew implementation.",
+                    "default": 4
+                },
+                "pace_fmt_config": {
+                    "type": "number",
+                    "description": "Format configuration forwarded to the PACE-enabled FPnew implementation.",
+                    "default": 40
                 },
                 "dma_data_width": {
                     "type": "number",
@@ -431,6 +469,11 @@
                             "description": "Latency setting (number of pipeline stages) for floating-point expanding dot product with accumulation.",
                             "default": 2
                         },
+                        "lat_mxdotp": {
+                            "type": "number",
+                            "description": "Latency setting (number of pipeline stages) for MX dot product with accumulation.",
+                            "default": 4
+                        },
                         "fpu_pipe_config": {
                             "type": "string",
                             "description": "Pipeline configuration (i.e., position of the registers) of the FPU.",
@@ -566,6 +609,12 @@
                                             "type": "boolean",
                                             "title": "Xfdotp Extension",
                                             "description": "Enable DOTP extensions.",
+                                            "default": false
+                                        },
+                                        "xfmxdotp": {
+                                            "type": "boolean",
+                                            "title": "Xfmxdotp Extension",
+                                            "description": "Enable MXDOTP extensions.",
                                             "default": false
                                         },
                                         "xfvec": {

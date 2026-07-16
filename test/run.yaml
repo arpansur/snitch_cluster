@@ -116,6 +116,14 @@ runs:
   #   cmd: [../sw/kernels/dnn/layernorm/scripts/verify.py, "${sim_bin}", "${elf}"]
   - elf: ../sw/kernels/dnn/gelu/build/gelu.elf
     cmd: [../sw/kernels/dnn/gelu/scripts/verify.py, "${sim_bin}", "${elf}"]
+  - elf: ../sw/kernels/pace/pwpa/build/pwpa.elf
+    cmd: [../sw/kernels/pace/pwpa/scripts/verify.py, "${sim_bin}", "${elf}"]
+  - elf: ../sw/kernels/pace/pwpa_scalar/build/pwpa_scalar.elf
+    cmd: [../sw/kernels/pace/pwpa_scalar/scripts/verify.py, "${sim_bin}", "${elf}"]
+  - elf: ../sw/kernels/pace/pace_softmax/build/pace_softmax.elf
+    cmd: [../sw/kernels/pace/pace_softmax/scripts/verify.py, "${sim_bin}", "${elf}"]
+  - elf: ../sw/kernels/pace/layernorm/build/pace_layernorm.elf
+    cmd: [../sw/kernels/pace/layernorm/scripts/verify.py, "${sim_bin}", "${elf}"]
   - elf: ../sw/kernels/dnn/flashattention_2/build/flashattention_2.elf
     cmd: [../sw/kernels/dnn/flashattention_2/scripts/verify.py, "${sim_bin}", "${elf}"]
   - elf: ../sw/kernels/dnn/mha/build/mha.elf

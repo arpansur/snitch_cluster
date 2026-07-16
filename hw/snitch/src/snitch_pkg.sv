@@ -147,6 +147,7 @@ package snitch_pkg;
     bit XDivSqrt;
     bit XFVEC;
     bit XFDOTP;
+    bit XFMXDOTP;
     bit XFAUX;
     /// Enable Xpulp instructions (overlaps with DMA, SSR, copift and frep)
     bit Xpulppostmod;
@@ -209,7 +210,7 @@ package snitch_pkg;
 
   function automatic bit calculate_fp_enable(isa_cfg_t isa);
     return isa.RVF || isa.RVD || isa.XF16 || isa.XF16ALT || isa.XF8 || isa.XF8ALT ||
-           isa.XFVEC || isa.XFAUX || isa.XFDOTP;
+           isa.XFVEC || isa.XFAUX || isa.XFDOTP || isa.XFMXDOTP;
   endfunction
 
   function automatic bit calculate_xpulpv2(isa_cfg_t isa);

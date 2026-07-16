@@ -1,0 +1,20 @@
+// Copyright 2026 ETH Zurich and University of Bologna.
+// Licensed under the Apache License, Version 2.0, see LICENSE for details.
+// SPDX-License-Identifier: Apache-2.0
+{
+    "x_min" : 1,
+    "x_max" : 10,
+    "n_deg" : 2,
+    "n_part": 16,
+    "n_test": 1001,
+    "seed"  : 1234,
+    "eps"   : 5e-7,
+    "prec"  : "FP32",
+    "fpu_data_width" : 64,
+    "super_fmt" : "FP32",
+    "fn_name": "inv",
+    "enable" : true,
+    "extend": false,
+    "enable_fp32"  : true,
+    "debug_fname" : "debug.txt"
+}

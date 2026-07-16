@@ -14,23 +14,27 @@ module snitch_fpu import snitch_pkg::*; #(
   parameter bit          XF8            = 0,
   parameter bit          XF8ALT         = 0,
   parameter bit          XFVEC          = 0,
+  parameter bit          XFMXDOTP       = 0,
   parameter int unsigned FLEN           = 0,
   parameter bit          RegisterFpuReq = 0,
   parameter bit          RegisterFpuRsp = 0,
+  parameter type         pace_cfg_t     = logic,
+  parameter pace_cfg_t   PaceCfg        = '0,
   parameter type         TagType        = logic,
   // Derived parameters *do not override*
-  localparam type        fpu_req_t      = `FPU_REQ_STRUCT(FLEN, TagType),
-  localparam type        fpu_rsp_t      = `FPU_RSP_STRUCT(FLEN, TagType)
+  localparam type        fpu_req_chan_t = `FPU_REQ_CHAN_STRUCT(FLEN, TagType),
+  localparam type        fpu_req_t      = `GENERIC_REQRSP_REQ_STRUCT(fpu_req_chan_t),
+  localparam type        fpu_rsp_chan_t = `FPU_RSP_CHAN_STRUCT(FLEN, TagType),
+  localparam type        fpu_rsp_t      = `GENERIC_REQRSP_RSP_STRUCT(fpu_rsp_chan_t)
 ) (
   input  logic        clk_i,
   input  logic        rst_ni,
   input  logic [31:0] hart_id_i,
+  input  logic [cf_math_pkg::iomsb(PaceCfg.param_width):0] pace_param_i,
+  input  fpnew_pkg::pace_mode_t pace_mode_i,
   input  fpu_req_t    req_i,
   output fpu_rsp_t    rsp_o
 );
-
-  // Define fpu_req_chan_t and fpu_rsp_chan_t
-  `FPU_TYPEDEF_REQRSP_CHAN_ALL(fpu, FLEN, TagType)
 
   fpu_req_t fpu_req;
   fpu_rsp_t fpu_rsp;
@@ -49,13 +53,30 @@ module snitch_fpu import snitch_pkg::*; #(
     .mst_rsp_i(fpu_rsp)
   );
 
+  localparam fpnew_pkg::fmt_logic_t FpFmtMask = {
+    RVF, RVD, XF16, XF8, XF16ALT, XF8ALT, 1'b0, 1'b0, 1'b0
+  };
+  localparam fpnew_pkg::fmt_logic_t PaceFmtMask =
+    fpnew_pkg::fmt_logic_t'(PaceCfg.fmt_config) & FpFmtMask;
+
   // FPU configuration
   localparam fpnew_pkg::fpu_features_t FpuFeatures = '{
     Width:         fpnew_pkg::maximum(FLEN, 32),
     EnableVectors: XFVEC,
     EnableNanBox:  1'b1,
-    FpFmtMask:     {RVF, RVD, XF16, XF8, XF16ALT, XF8ALT},
-    IntFmtMask:    {XFVEC && (XF8 || XF8ALT), XFVEC && (XF16 || XF16ALT), 1'b1, 1'b0}
+    FpFmtMask:     FpFmtMask,
+    IntFmtMask:    {XFVEC && (XF8 || XF8ALT), XFVEC && (XF16 || XF16ALT), 1'b1, 1'b0},
+    MxFpFmtMask:   {1'b0, 1'b0, 1'b0, XF8, 1'b0, XF8ALT, 1'b1, 1'b1, 1'b1},
+    MxIntFmtMask:  {1'b1, 1'b0, 1'b0, 1'b0},
+    PaceFeatures:  '{
+      PaceDegree:      PaceCfg.degree,
+      PaceParts:       PaceCfg.parts,
+      PaceEps:         PaceCfg.eps,
+      PaceDataWidth:   PaceCfg.data_width,
+      PaceParamWidth:  PaceCfg.param_width,
+      PaceBstPipeRegs: fpnew_pkg::pace_pipe_t'(PaceCfg.pipe_dist),
+      FmtConfig:       PaceFmtMask
+    }
   };
 
   fpnew_top #(
@@ -86,7 +107,9 @@ module snitch_fpu import snitch_pkg::*; #(
     .tag_o         (fpu_rsp.p.tag),
     .out_valid_o   (fpu_rsp.p_valid),
     .out_ready_i   (fpu_req.p_ready),
-    .busy_o        ()
+    .busy_o        (),
+    .pace_param_i  (pace_param_i),
+    .pace_mode_i   (pace_mode_i)
   );
 
 endmodule

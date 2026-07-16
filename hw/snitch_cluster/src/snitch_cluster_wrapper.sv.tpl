@@ -123,6 +123,8 @@ module ${cfg['cluster']['name']}_wrapper (
     .ICacheWays (${cfg['cluster']['name']}_pkg::ICacheWays),
     .ICacheL1TagScm (${cfg['cluster']['name']}_pkg::ICacheL1TagScm),
     .ICacheL1DataScm (${cfg['cluster']['name']}_pkg::ICacheL1DataScm),
+    .pace_cfg_t (${cfg['cluster']['name']}_pkg::pace_cfg_t),
+    .PaceCfg (${cfg['cluster']['name']}_pkg::PaceCfg),
     .VMSupport (${int(cfg['cluster']['vm_support'])}),
     .EnableWideCollectives (${cfg['cluster']['name']}_pkg::EnableWideCollectives),
     .EnableNarrowCollectives (${cfg['cluster']['name']}_pkg::EnableNarrowCollectives),

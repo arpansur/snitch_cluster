@@ -16,6 +16,14 @@
         },
         cluster_periph_size: 60, // kB
         zero_mem_size: 64, // kB
+        pace_enable: true,
+        pace_mem_size: 64, // kB
+        pace_degree: 2,
+        pace_parts: 16,
+        pace_eps: 1,
+        pace_data_width: 32,
+        pace_pipe_dist: 0x04,
+        pace_fmt_config: 0x150,
         alias_region_enable: true,
         dma_data_width: 512,
         dma_axi_req_fifo_depth: 24,
@@ -44,6 +52,7 @@
             lat_noncomp: 1,
             lat_conv: 2,
             lat_sdotp: 3,
+            lat_mxdotp: 4,
             fpu_pipe_config: "BEFORE",
             narrow_xbar_latency: "CUT_ALL_PORTS",
             wide_xbar_latency: "CUT_ALL_PORTS",
@@ -103,6 +112,7 @@
         xf8: true,
         xf8alt: true,
         xfdotp: true,
+        xfmxdotp: false,
         xfvec: true,
         ssr_nr_credits: 4,
         num_int_outstanding_loads: 4,

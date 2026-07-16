@@ -112,6 +112,8 @@ module snitch_cc #(
   parameter int unsigned CollectiveWidth    = 1,
   /// Enable direct compute access (DCA).
   parameter bit          EnableDca          = 0,
+  parameter type         pace_cfg_t         = logic,
+  parameter pace_cfg_t   PaceCfg            = '0,
   /// Derived parameter *Do not override*
   localparam int unsigned TCDMPorts = (NumSsrs > 1 ? NumSsrs : 1),
   localparam type addr_t = logic [AddrWidth-1:0],
@@ -159,6 +161,7 @@ module snitch_cc #(
   // Cluster HW barrier
   output logic                              barrier_o,
   input  logic                              barrier_i,
+  input  logic [cf_math_pkg::iomsb(PaceCfg.param_width):0] pace_param_i,
   // Direct Compute Access (DCA) interface
   input  dca_req_t                          dca_req_i,
   output dca_rsp_t                          dca_rsp_o
@@ -206,6 +209,7 @@ module snitch_cc #(
   fpnew_pkg::roundmode_e fpu_rnd_mode;
   fpnew_pkg::fmt_mode_t  fpu_fmt_mode;
   fpnew_pkg::status_t    fpu_status;
+  fpnew_pkg::pace_mode_t fpu_pace_mode;
 
   snitch_pkg::core_events_t snitch_events;
   snitch_pkg::core_events_t fpss_events;
@@ -273,6 +277,7 @@ module snitch_cc #(
     .ptw_rsp_i  ( hive_rsp_i.ptw_rsp ),
     .fpu_rnd_mode_o ( fpu_rnd_mode ),
     .fpu_fmt_mode_o ( fpu_fmt_mode ),
+    .fpu_pace_mode_o ( fpu_pace_mode ),
     .fpu_status_i ( fpu_status ),
     .core_events_o ( snitch_events),
     .barrier_o ( barrier_o ),
@@ -473,7 +478,9 @@ module snitch_cc #(
       .RegisterSequencer (RegisterSequencer),
       .RegisterFpuReq (RegisterFPUIn),
       .RegisterFpuRsp (RegisterFPUOut),
-      .EnableDca (EnableDca)
+      .EnableDca (EnableDca),
+      .pace_cfg_t (pace_cfg_t),
+      .PaceCfg (PaceCfg)
     ) i_snitch_fp_ss (
       .clk_i,
       .rst_i            ( ~rst_ni | (~rst_fp_ss_ni)   ),
@@ -497,6 +504,7 @@ module snitch_cc #(
       .fpu_rnd_mode_i   ( fpu_rnd_mode   ),
       .fpu_fmt_mode_i   ( fpu_fmt_mode   ),
       .fpu_status_o     ( fpu_status     ),
+      .fpu_pace_mode_i  ( fpu_pace_mode  ),
       .ssr_raddr_o      ( ssr_raddr      ),
       .ssr_rdata_i      ( ssr_rdata      ),
       .ssr_rvalid_o     ( ssr_rvalid     ),
@@ -512,6 +520,7 @@ module snitch_cc #(
       .streamctl_ready_o  ( ssr_streamctl_ready ),
       .core_events_o      ( fpss_events         ),
       .en_copift_i        ( en_copift           ),
+      .fpu_pace_param_i   ( pace_param_i        ),
       .dca_req_i          ( dca_req             ),
       .dca_rsp_o          ( dca_rsp             )
     );

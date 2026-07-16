@@ -162,43 +162,67 @@ package ${cfg['cluster']['name']}_pkg;
                         ${cfg['cluster']['timing']['lat_comp_fp16']}, // FP16
                         ${cfg['cluster']['timing']['lat_comp_fp8']}, // FP8
                         ${cfg['cluster']['timing']['lat_comp_fp16_alt']}, // FP16alt
-                        ${cfg['cluster']['timing']['lat_comp_fp8_alt']}  // FP8alt
+                        ${cfg['cluster']['timing']['lat_comp_fp8_alt']},  // FP8alt
+                        0, // FP6
+                        0, // FP6alt
+                        0  // FP4
                       },
-                    '{1, 1, 1, 1, 1, 1},   // DIVSQRT
+                    '{1, 1, 1, 1, 1, 1, 0, 0, 0},   // DIVSQRT
                     '{${cfg['cluster']['timing']['lat_noncomp']},
                       ${cfg['cluster']['timing']['lat_noncomp']},
                       ${cfg['cluster']['timing']['lat_noncomp']},
                       ${cfg['cluster']['timing']['lat_noncomp']},
                       ${cfg['cluster']['timing']['lat_noncomp']},
-                      ${cfg['cluster']['timing']['lat_noncomp']}},   // NONCOMP
+                      ${cfg['cluster']['timing']['lat_noncomp']},
+                      0, 0, 0},   // NONCOMP
                     '{${cfg['cluster']['timing']['lat_conv']},
                       ${cfg['cluster']['timing']['lat_conv']},
                       ${cfg['cluster']['timing']['lat_conv']},
                       ${cfg['cluster']['timing']['lat_conv']},
                       ${cfg['cluster']['timing']['lat_conv']},
-                      ${cfg['cluster']['timing']['lat_conv']}},   // CONV
+                      ${cfg['cluster']['timing']['lat_conv']},
+                      0, 0, 0},   // CONV
                     '{${cfg['cluster']['timing']['lat_sdotp']},
                       ${cfg['cluster']['timing']['lat_sdotp']},
                       ${cfg['cluster']['timing']['lat_sdotp']},
                       ${cfg['cluster']['timing']['lat_sdotp']},
                       ${cfg['cluster']['timing']['lat_sdotp']},
-                      ${cfg['cluster']['timing']['lat_sdotp']}}    // DOTP
+                      ${cfg['cluster']['timing']['lat_sdotp']},
+                      0, 0, 0},    // DOTP
+                    '{${cfg['cluster']['timing']['lat_mxdotp']},
+                      ${cfg['cluster']['timing']['lat_mxdotp']},
+                      ${cfg['cluster']['timing']['lat_mxdotp']},
+                      ${cfg['cluster']['timing']['lat_mxdotp']},
+                      ${cfg['cluster']['timing']['lat_mxdotp']},
+                      ${cfg['cluster']['timing']['lat_mxdotp']},
+                      ${cfg['cluster']['timing']['lat_mxdotp']},
+                      ${cfg['cluster']['timing']['lat_mxdotp']},
+                      ${cfg['cluster']['timing']['lat_mxdotp']}}    // MXDOTP
                     },
         UnitTypes: '{'{fpnew_pkg::MERGED,
                        fpnew_pkg::MERGED,
                        fpnew_pkg::MERGED,
                        fpnew_pkg::MERGED,
                        fpnew_pkg::MERGED,
-                       fpnew_pkg::MERGED},  // FMA
+                       fpnew_pkg::MERGED,
+                       fpnew_pkg::DISABLED,
+                       fpnew_pkg::DISABLED,
+                       fpnew_pkg::DISABLED},  // FMA
 % if c["Xdiv_sqrt"]:
                     '{fpnew_pkg::MERGED,
                         fpnew_pkg::MERGED,
                         fpnew_pkg::MERGED,
                         fpnew_pkg::MERGED,
                         fpnew_pkg::MERGED,
-                        fpnew_pkg::MERGED}, // DIVSQRT
+                        fpnew_pkg::MERGED,
+                        fpnew_pkg::DISABLED,
+                        fpnew_pkg::DISABLED,
+                        fpnew_pkg::DISABLED}, // DIVSQRT
 % else:
                     '{fpnew_pkg::DISABLED,
+                        fpnew_pkg::DISABLED,
+                        fpnew_pkg::DISABLED,
+                        fpnew_pkg::DISABLED,
                         fpnew_pkg::DISABLED,
                         fpnew_pkg::DISABLED,
                         fpnew_pkg::DISABLED,
@@ -210,27 +234,60 @@ package ${cfg['cluster']['name']}_pkg;
                         fpnew_pkg::PARALLEL,
                         fpnew_pkg::PARALLEL,
                         fpnew_pkg::PARALLEL,
-                        fpnew_pkg::PARALLEL}, // NONCOMP
+                        fpnew_pkg::PARALLEL,
+                        fpnew_pkg::DISABLED,
+                        fpnew_pkg::DISABLED,
+                        fpnew_pkg::DISABLED}, // NONCOMP
                     '{fpnew_pkg::MERGED,
                         fpnew_pkg::MERGED,
                         fpnew_pkg::MERGED,
                         fpnew_pkg::MERGED,
                         fpnew_pkg::MERGED,
-                        fpnew_pkg::MERGED},   // CONV
+                        fpnew_pkg::MERGED,
+                        fpnew_pkg::DISABLED,
+                        fpnew_pkg::DISABLED,
+                        fpnew_pkg::DISABLED},   // CONV
 % if c["xfdotp"]:
                     '{fpnew_pkg::MERGED,
                         fpnew_pkg::MERGED,
                         fpnew_pkg::MERGED,
                         fpnew_pkg::MERGED,
                         fpnew_pkg::MERGED,
-                        fpnew_pkg::MERGED}},  // DOTP
+                        fpnew_pkg::MERGED,
+                        fpnew_pkg::DISABLED,
+                        fpnew_pkg::DISABLED,
+                        fpnew_pkg::DISABLED},  // DOTP
 % else:
                     '{fpnew_pkg::DISABLED,
                         fpnew_pkg::DISABLED,
                         fpnew_pkg::DISABLED,
                         fpnew_pkg::DISABLED,
                         fpnew_pkg::DISABLED,
-                        fpnew_pkg::DISABLED}}, // DOTP
+                        fpnew_pkg::DISABLED,
+                        fpnew_pkg::DISABLED,
+                        fpnew_pkg::DISABLED,
+                        fpnew_pkg::DISABLED}, // DOTP
+% endif
+% if c["xfmxdotp"]:
+                    '{fpnew_pkg::MERGED,
+                        fpnew_pkg::MERGED,
+                        fpnew_pkg::MERGED,
+                        fpnew_pkg::MERGED,
+                        fpnew_pkg::MERGED,
+                        fpnew_pkg::MERGED,
+                        fpnew_pkg::MERGED,
+                        fpnew_pkg::MERGED,
+                        fpnew_pkg::MERGED}},  // MXDOTP
+% else:
+                    '{fpnew_pkg::DISABLED,
+                        fpnew_pkg::DISABLED,
+                        fpnew_pkg::DISABLED,
+                        fpnew_pkg::DISABLED,
+                        fpnew_pkg::DISABLED,
+                        fpnew_pkg::DISABLED,
+                        fpnew_pkg::DISABLED,
+                        fpnew_pkg::DISABLED,
+                        fpnew_pkg::DISABLED}}, // MXDOTP
 % endif
         PipeConfig: fpnew_pkg::${cfg['cluster']['timing']['fpu_pipe_config']}
     }${',\n' if not loop.last else '\n'}\
@@ -254,6 +311,7 @@ package ${cfg['cluster']['name']}_pkg;
       XDivSqrt: ${int(c['Xdiv_sqrt'])},
       XFVEC: ${int(c['xfvec'])},
       XFDOTP: ${int(c['xfdotp'])},
+      XFMXDOTP: ${int(c['xfmxdotp'])},
       // FMA architecture is "merged" -> mulexp and macexp instructions are supported
       XFAUX: FPUImplementation[${i}].UnitTypes[3] == fpnew_pkg::MERGED,
       Xpulppostmod: ${int(c['xpulppostmod'])},
@@ -285,6 +343,40 @@ ${ssr_cfg(core, '{reg_idx}', '/*None*/ 0', ',')}\
   localparam logic [9:0] CfgBaseHartId        = (${to_sv_hex(cfg['cluster']['cluster_base_hartid'], 10)});
   localparam addr_t    	 CfgClusterBaseAddr   = (${to_sv_hex(cfg['cluster']['cluster_base_addr'], cfg['cluster']['addr_width'])});
   localparam addr_t    	 CfgClusterBaseOffset = (${to_sv_hex(cfg['cluster']['cluster_base_offset'], cfg['cluster']['addr_width'])});
+
+  // PACE configuration
+  localparam bit PaceEnable = ${int(cfg['cluster'].get('pace_enable', 1))};
+  localparam int unsigned PaceMemorySize = PaceEnable ? ${cfg['cluster'].get('pace_mem_size', 64)} : 0;
+  localparam int unsigned PaceDegree = PaceEnable ? ${cfg['cluster'].get('pace_degree', 2)} : 0;
+  localparam int unsigned PaceParts = PaceEnable ? ${cfg['cluster'].get('pace_parts', 16)} : 0;
+  localparam int unsigned PaceDataWidth = PaceEnable ? ${cfg['cluster'].get('pace_data_width', 32)} : 0;
+  localparam int unsigned PaceFmtConfig = PaceEnable ? ${cfg['cluster'].get('pace_fmt_config', 40)} : 0;
+  localparam int unsigned PacePipeDist = PaceEnable ? ${cfg['cluster'].get('pace_pipe_dist', 4)} : 0;
+  localparam int unsigned PaceEps = PaceEnable ? ${cfg['cluster'].get('pace_eps', 1)} : 0;
+  localparam int unsigned PaceParamWidth =
+    PaceEnable ? (((PaceDegree + 1) * PaceParts + PaceParts - 1 + 2 * PaceEps) * PaceDataWidth) : 0;
+  typedef struct packed {
+    logic        enable;
+    logic [31:0] memory_size;
+    logic [31:0] degree;
+    logic [31:0] parts;
+    logic [31:0] eps;
+    logic [31:0] data_width;
+    logic [31:0] param_width;
+    logic [31:0] fmt_config;
+    logic [31:0] pipe_dist;
+  } pace_cfg_t;
+  localparam pace_cfg_t PaceCfg = '{
+    enable: PaceEnable,
+    memory_size: PaceMemorySize,
+    degree: PaceDegree,
+    parts: PaceParts,
+    eps: PaceEps,
+    data_width: PaceDataWidth,
+    param_width: PaceParamWidth,
+    fmt_config: PaceFmtConfig,
+    pipe_dist: PacePipeDist
+  };
 
 endpackage
 // verilog_lint: waive-stop package-filename

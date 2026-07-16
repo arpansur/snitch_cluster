@@ -87,20 +87,24 @@ SN_APPS += $(SN_ROOT)/sw/kernels/dnn/softmax
 SN_APPS += $(SN_ROOT)/sw/kernels/dnn/flashattention_2
 SN_APPS += $(SN_ROOT)/sw/kernels/dnn/concat
 SN_APPS += $(SN_ROOT)/sw/kernels/dnn/fused_concat_linear
-SN_APPS += $(SN_ROOT)/sw/kernels/dnn/transpose
-SN_APPS += $(SN_ROOT)/sw/kernels/dnn/mha
-SN_APPS += $(SN_ROOT)/sw/kernels/misc/montecarlo/pi_estimation
-SN_APPS += $(SN_ROOT)/sw/kernels/misc/atax
+	SN_APPS += $(SN_ROOT)/sw/kernels/dnn/transpose
+	SN_APPS += $(SN_ROOT)/sw/kernels/dnn/mha
+	SN_APPS += $(SN_ROOT)/sw/kernels/misc/montecarlo/pi_estimation
+	SN_APPS += $(SN_ROOT)/sw/kernels/misc/atax
 SN_APPS += $(SN_ROOT)/sw/kernels/misc/correlation
 SN_APPS += $(SN_ROOT)/sw/kernels/misc/covariance
 SN_APPS += $(SN_ROOT)/sw/kernels/misc/doitgen
 SN_APPS += $(SN_ROOT)/sw/kernels/misc/kmeans
 SN_APPS += $(SN_ROOT)/sw/kernels/misc/exp
 SN_APPS += $(SN_ROOT)/sw/kernels/misc/log
-SN_APPS += $(SN_ROOT)/sw/kernels/misc/kbpcpa
-SN_APPS += $(SN_ROOT)/sw/kernels/misc/box3d1r
-SN_APPS += $(SN_ROOT)/sw/kernels/misc/j3d27pt
-SN_APPS += $(SN_ROOT)/sw/kernels/misc/sort
+	SN_APPS += $(SN_ROOT)/sw/kernels/misc/kbpcpa
+	SN_APPS += $(SN_ROOT)/sw/kernels/misc/box3d1r
+	SN_APPS += $(SN_ROOT)/sw/kernels/misc/j3d27pt
+	SN_APPS += $(SN_ROOT)/sw/kernels/misc/sort
+	SN_APPS += $(SN_ROOT)/sw/kernels/pace/layernorm
+	SN_APPS += $(SN_ROOT)/sw/kernels/pace/pace_softmax
+	SN_APPS += $(SN_ROOT)/sw/kernels/pace/pwpa
+	SN_APPS += $(SN_ROOT)/sw/kernels/pace/pwpa_scalar
 endif
 
 # Include Makefile from each app subdirectory

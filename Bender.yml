@@ -30,7 +30,7 @@ dependencies:
   idma: 0.6.5
   axi:                { git: https://github.com/colluca/axi.git,                      rev:      multicast   }
   common_cells:       { git: https://github.com/pulp-platform/common_cells.git,       rev:      snitch      }
-  FPnew:              { git: https://github.com/pulp-platform/cvfpu.git,              rev:      pulp-v0.2.3 }
+  FPnew:              { git: https://github.com/arpansur/cvfpu.git,                   rev: "2603fa342cb6781dda5886d643fd754e21ecb27b"}
 
 export_include_dirs:
   - hw/reqrsp_interface/include
@@ -185,6 +185,7 @@ sources:
       - hw/snitch_cluster/src/snitch_cc.sv
       - hw/snitch_cluster/src/snitch_clkdiv2.sv
       # Level 3
+      - hw/snitch_cluster/src/axi_pace_mem.sv
       - hw/snitch_cluster/src/snitch_hive.sv
       # Level 4
       - hw/snitch_cluster/src/snitch_cluster.sv

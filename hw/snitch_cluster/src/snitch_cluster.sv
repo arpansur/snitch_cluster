@@ -213,6 +213,8 @@ module snitch_cluster
   parameter bit          IntBootromEnable   = 1'b1,
   /// Enable direct compute access (DCA).
   parameter bit EnableDca                   = 0,
+  parameter type pace_cfg_t                 = logic,
+  parameter pace_cfg_t   PaceCfg            = '0,
   /// Width of the external DCA interface
   parameter int unsigned DcaDataWidth       = WideDataWidth,
   /// Derived parameters
@@ -346,6 +348,9 @@ module snitch_cluster
   // Core Requests, SoC Request, PTW.
   localparam int unsigned NrNarrowMasters = 3;
   localparam int unsigned NarrowIdWidthOut = $clog2(NrNarrowMasters) + NarrowIdWidthIn;
+  localparam int unsigned CoreReq = 0;
+  localparam int unsigned AXISoC  = 1;
+  localparam int unsigned PTW     = 2;
 
   localparam int unsigned NrSlaves = 4;
   localparam int unsigned NrRuleIdcs = NrSlaves - 1;
@@ -355,10 +360,18 @@ module snitch_cluster
   // SoC in Request, DMA Channels, `n` instruction caches.
   localparam int unsigned NrWideMasters = 1 + DMANumChannels + NrHives;
   localparam int unsigned WideIdWidthOut = $clog2(NrWideMasters) + WideIdWidthIn;
-  // TCDM, SoC out, ZeroMemory, (Bootrom)
-  localparam int unsigned NrWideSlaves = 3 + IntBootromEnable;
+  // TCDM, SoC out, ZeroMemory, PaceMemory, (Bootrom)
+  localparam int unsigned NrWideSlaves = 4 + IntBootromEnable;
   localparam int unsigned NrWideRuleIdcs = NrWideSlaves - 1;
   localparam int unsigned NrWideRules = (1 + AliasRegionEnable) * NrWideRuleIdcs;
+  localparam int unsigned SoCDMAOut  = 0;
+  localparam int unsigned TCDMDMA    = 1;
+  localparam int unsigned ZeroMemory = 2;
+  localparam int unsigned PaceMemory = 3;
+  localparam int unsigned BootRom    = 4;
+  localparam int unsigned SoCDMAIn   = 0;
+  localparam int unsigned SDMAMst    = 1;
+  localparam int unsigned ICache     = 2;
 
   // AXI Configuration
   localparam axi_pkg::xbar_cfg_t ClusterXbarCfg = '{
@@ -402,6 +415,9 @@ module snitch_cluster
     default: '0
   };
   localparam int unsigned WideSlaveIdxBits = cf_math_pkg::idx_width(NrWideSlaves);
+  localparam int unsigned PaceParamCount = PaceCfg.enable ?
+    ((PaceCfg.degree + 1) * PaceCfg.parts + PaceCfg.parts - 1 + 2 * PaceCfg.eps) : 0;
+  localparam int unsigned PaceParamWidth = PaceCfg.param_width;
 
 
   function automatic int unsigned get_hive_size(int unsigned current_hive);
@@ -562,8 +578,12 @@ module snitch_cluster
   assign zero_mem_start_address = cluster_periph_end_address;
   assign zero_mem_end_address   = cluster_periph_end_address + ZeroMemorySize * 1024;
 
+  addr_t pace_mem_start_address, pace_mem_end_address;
+  assign pace_mem_start_address = zero_mem_end_address;
+  assign pace_mem_end_address   = zero_mem_end_address + PaceCfg.memory_size * 1024;
+
   addr_t ext_mem_start_address, ext_mem_end_address;
-  assign ext_mem_start_address = zero_mem_end_address;
+  assign ext_mem_start_address = pace_mem_end_address;
   assign ext_mem_end_address   = ext_mem_start_address + ExtMemorySize * 1024;
 
   addr_t cluster_start_address, cluster_end_address;
@@ -582,7 +602,10 @@ module snitch_cluster
   localparam addr_t ZeroMemAliasStart = PeriphAliasEnd;
   localparam addr_t ZeroMemAliasEnd   = PeriphAliasEnd + ZeroMemorySize * 1024;
 
-  localparam addr_t ExtAliasStart = ZeroMemAliasEnd;
+  localparam addr_t PaceMemAliasStart = ZeroMemAliasEnd;
+  localparam addr_t PaceMemAliasEnd   = ZeroMemAliasEnd + PaceCfg.memory_size * 1024;
+
+  localparam addr_t ExtAliasStart = PaceMemAliasEnd;
   localparam addr_t ExtAliasEnd   = ExtAliasStart + ExtMemorySize * 1024;
 
   // ----------------
@@ -644,6 +667,8 @@ module snitch_cluster
   logic [NrCores-1:0] cl_interrupt;
   logic [NrCores-1:0] barrier_in;
   logic barrier_out;
+  logic [cf_math_pkg::iomsb(PaceParamWidth):0] pace_param;
+  logic [cf_math_pkg::iomsb(PaceParamWidth):0] pace_param_from_mem;
 
   // -------------
   // DMA Subsystem
@@ -702,14 +727,16 @@ module snitch_cluster
   };
 
   // Define the address map for the wide XBAR
-  xbar_rule_t [5:0] dma_xbar_rules;
+  xbar_rule_t [7:0] dma_xbar_rules;
   xbar_rule_t [DmaXbarCfg.NoAddrRules-1:0] enabled_dma_xbar_rule;
   assign dma_xbar_rules = '{
     '{idx: BootRom,    start_addr: BootRomAliasStart,      end_addr: BootRomAliasEnd},
     '{idx: ZeroMemory, start_addr: ZeroMemAliasStart,      end_addr: ZeroMemAliasEnd},
+    '{idx: PaceMemory, start_addr: PaceMemAliasStart,      end_addr: PaceMemAliasEnd},
     '{idx: TCDMDMA,    start_addr: TCDMAliasStart,         end_addr: TCDMAliasEnd},
     '{idx: BootRom,    start_addr: bootrom_start_address,  end_addr: bootrom_end_address},
     '{idx: ZeroMemory, start_addr: zero_mem_start_address, end_addr: zero_mem_end_address},
+    '{idx: PaceMemory, start_addr: pace_mem_start_address, end_addr: pace_mem_end_address},
     '{idx: TCDMDMA,    start_addr: tcdm_start_address,     end_addr: tcdm_end_address}
   };
   always_comb begin
@@ -717,13 +744,15 @@ module snitch_cluster
     i = 0;
     enabled_dma_xbar_rule[i] = dma_xbar_rules[0]; i++; // TCDM
     enabled_dma_xbar_rule[i] = dma_xbar_rules[1]; i++; // ZeroMemory
+    enabled_dma_xbar_rule[i] = dma_xbar_rules[2]; i++; // PaceMemory
     if (IntBootromEnable) begin
-      enabled_dma_xbar_rule[i] = dma_xbar_rules[2]; i++; // Bootrom
+      enabled_dma_xbar_rule[i] = dma_xbar_rules[3]; i++; // Bootrom
     end
     if (AliasRegionEnable) begin
-      enabled_dma_xbar_rule[i] = dma_xbar_rules[3]; i++; // TCDM Alias
-      enabled_dma_xbar_rule[i] = dma_xbar_rules[4]; i++; // ZeroMemory Alias
-      if (IntBootromEnable) enabled_dma_xbar_rule[i] = dma_xbar_rules[5]; // Bootrom Alias
+      enabled_dma_xbar_rule[i] = dma_xbar_rules[4]; i++; // TCDM Alias
+      enabled_dma_xbar_rule[i] = dma_xbar_rules[5]; i++; // ZeroMemory Alias
+      enabled_dma_xbar_rule[i] = dma_xbar_rules[6]; i++; // PaceMemory Alias
+      if (IntBootromEnable) enabled_dma_xbar_rule[i] = dma_xbar_rules[7]; // Bootrom Alias
     end
   end
 
@@ -783,6 +812,45 @@ module snitch_cluster
     .axi_req_i (wide_axi_slv_req[ZeroMemory]),
     .axi_resp_o (wide_axi_slv_rsp[ZeroMemory])
   );
+
+  if (PaceCfg.enable) begin : gen_axi_pacemem
+    axi_pace_mem #(
+      .axi_req_t (axi_slv_dma_req_t),
+      .axi_resp_t (axi_slv_dma_resp_t),
+      .pace_cfg_t (pace_cfg_t),
+      .PaceCfg (PaceCfg),
+      .AddrWidth (PhysicalAddrWidth),
+      .DataWidth (WideDataWidth),
+      .IdWidth (WideIdWidthOut),
+      .NumBanks (1),
+      .BufDepth (1)
+    ) i_axi_pacemem (
+      .clk_i,
+      .rst_ni,
+      .busy_o (),
+      .axi_req_i (wide_axi_slv_req[PaceMemory]),
+      .axi_resp_o (wide_axi_slv_rsp[PaceMemory]),
+      .pace_param_o (pace_param_from_mem)
+    );
+  end else begin : gen_axi_pacemem_disabled
+    axi_zero_mem #(
+      .axi_req_t (axi_slv_dma_req_t),
+      .axi_resp_t (axi_slv_dma_resp_t),
+      .AddrWidth (PhysicalAddrWidth),
+      .DataWidth (WideDataWidth),
+      .IdWidth (WideIdWidthOut),
+      .NumBanks (1),
+      .BufDepth (1)
+    ) i_axi_pacemem_disabled (
+      .clk_i,
+      .rst_ni,
+      .busy_o (),
+      .axi_req_i (wide_axi_slv_req[PaceMemory]),
+      .axi_resp_o (wide_axi_slv_rsp[PaceMemory])
+    );
+  end
+
+  assign pace_param = PaceCfg.enable ? pace_param_from_mem : '0;
 
   addr_t [1:0] ext_dma_req_q_addr_nontrunc;
 
@@ -1105,7 +1173,9 @@ module snitch_cluster
       .TCDMAliasEnable (AliasRegionEnable),
       .TCDMAliasStart (TCDMAliasStart),
       .CollectiveWidth (CollectiveWidth),
-      .EnableDca (EnableDca)  
+      .EnableDca (EnableDca),
+      .pace_cfg_t (pace_cfg_t),
+      .PaceCfg (PaceCfg)
     ) i_snitch_cc (
       .clk_i,
       .clk_d2_i (clk_d2),
@@ -1140,8 +1210,9 @@ module snitch_cluster
       .tcdm_addr_base_i (tcdm_start_address),
       .barrier_o (barrier_in[i]),
       .barrier_i (barrier_out),
+      .pace_param_i (pace_param),
       .dca_req_i (dca_lane_req[i]),
-      .dca_rsp_o (dca_lane_rsp[i])  
+      .dca_rsp_o (dca_lane_rsp[i])
     );
     for (genvar j = 0; j < TcdmPorts; j++) begin : gen_tcdm_user
       always_comb begin
