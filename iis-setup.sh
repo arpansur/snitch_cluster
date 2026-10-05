@@ -13,7 +13,8 @@ export SN_VERILATOR_SEPP=$SN_OSEDA
 export SN_QUESTA_SEPP=questa-2025.3
 export SN_YOSYS="$SN_OSEDA yosys"
 export SN_SLANG="$SN_OSEDA slang"
-export SN_LLVM_BINROOT=/usr/scratch2/vulcano/colluca/tools/riscv32-pulp-llvm-almalinux8-22.1.7-pulp-0.4.0/bin/
+export SN_LLVM_BINROOT=/usr/scratch2/konark/prasadar/toolchain/riscv32-pulp-llvm-almalinux8-xpace-toolchain-v1.0.1/bin/
+# export SN_LLVM_BINROOT=/usr/scratch2/vulcano/colluca/tools/riscv32-pulp-llvm-almalinux8-22.1.7-pulp-0.4.0/bin/
 export SN_SG_SHELL="spyglass-2024.09 sg_shell"
 
 # We need Make >4.3 for grouped targets
