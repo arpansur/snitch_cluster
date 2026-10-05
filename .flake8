@@ -9,3 +9,11 @@ extend-exclude =
     .bender,
     sw/deps,
     target/asic/ihp13/pdk
+per-file-ignores =
+    sw/kernels/pace/elementwise/scripts/verify.py:E402
+    sw/kernels/pace/softmax/scripts/verify.py:E402
+    sw/kernels/pace/spatz_pace_loop/scripts/verify.py:E402
+    sw/kernels/pace/softmax/scripts/datagen.py:E402,F401,F403,F405,F841
+    sw/kernels/pace/scripts/debug.py:F403,F405
+    sw/kernels/pace/scripts/invert.py:F403,F405
+    sw/kernels/pace/scripts/softmax.py:E402,F403,F405

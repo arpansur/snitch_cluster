@@ -38,9 +38,10 @@ void *y;
 
 int main() {
     const unsigned int dim = axpy_l.M;
-    const size_t elem_size = axpy_l.dtype == FP32 ? sizeof(float) :
-                             axpy_l.dtype == FP16 ? sizeof(_Float16) :
-                                                     sizeof(double);
+    const size_t elem_size =
+        axpy_l.dtype == FP32
+            ? sizeof(float)
+            : axpy_l.dtype == FP16 ? sizeof(_Float16) : sizeof(double);
 
     // DM core: allocate L1 buffers and DMA data from DRAM
     if (snrt_is_dm_core()) {

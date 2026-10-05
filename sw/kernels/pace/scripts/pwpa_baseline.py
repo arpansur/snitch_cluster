@@ -1,3 +1,9 @@
+#!/usr/bin/env python3
+# Copyright 2023 ETH Zurich and University of Bologna.
+# Licensed under the Apache License, Version 2.0, see LICENSE for details.
+# SPDX-License-Identifier: Apache-2.0
+#
+
 import os
 import numpy as np
 
@@ -5,14 +11,18 @@ import numpy as np
 # FP16 helpers
 # -------------------------------------------------
 
+
 def f16(x):
     return np.float16(x)
+
 
 def f16_to_u16(x):
     return int(np.float16(x).view(np.uint16))
 
+
 def f16_hex(x):
     return f"0x{f16_to_u16(x):04x}"
+
 
 def fma_fp16(a, b, c):
     """
@@ -33,6 +43,7 @@ def fma_fp16(a, b, c):
 # Random FP16 generator
 # -------------------------------------------------
 
+
 def random_fp16(rng):
     sign = -1 if rng.random() > 0.5 else 1
     exp = rng.integers(-8, 8)
@@ -42,6 +53,7 @@ def random_fp16(rng):
 # -------------------------------------------------
 # Main generator
 # -------------------------------------------------
+
 
 def generate(N=32, seed=1, outdir="poly_deg1_two_sets"):
     rng = np.random.default_rng(seed)
@@ -166,6 +178,7 @@ def generate(N=32, seed=1, outdir="poly_deg1_two_sets"):
                     )
 
     print(f"Generated degree-1 stimuli + debug for {N}x16")
+
 
 # -------------------------------------------------
 # Run for required sizes

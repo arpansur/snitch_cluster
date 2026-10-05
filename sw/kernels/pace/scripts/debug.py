@@ -36,35 +36,44 @@ try:
         quantize_precision,
     )
 except ModuleNotFoundError:
-    from pwpa import compute_part_id_with_details, evaluate_pwpa_scalar, is_bf16_precision, quantize_precision
+    from pwpa import (
+        compute_part_id_with_details,
+        evaluate_pwpa_scalar,
+        is_bf16_precision,
+        quantize_precision,
+    )
+
+
 def arrange_params(np_type, bst_bps, coeffs, eps=10**-6, eps_const=0):
     params = []
     coeff_shape = coeffs.shape
     for deg in range(coeff_shape[1]):
         for bp in range(coeff_shape[0]):
-            params.append(clean_value(np_type(coeffs[bp, coeff_shape[1]-1-deg])))
+            params.append(clean_value(np_type(coeffs[bp, coeff_shape[1] - 1 - deg])))
     for bp in bst_bps:
         params.append(clean_value(np_type(bp)))
     params.append(clean_value(np_type(eps)))
     params.append(clean_value(np_type(eps_const)))
     return params
+
+
 def float_to_hex(v, prec):
     if prec == np.float64:
         arr = np.asarray(v, dtype=np.float64)
         bits = arr.view(np.uint64).item()
-        return f"0x{bits:016X}"    # 16 hex chars = 64 bits
+        return f"0x{bits:016X}"  # 16 hex chars = 64 bits
 
     # ---- float32 (32 bits) ----
     if prec == np.float32:
         arr = np.asarray(v, dtype=np.float32)
         bits = arr.view(np.uint32).item()
-        return f"0x{bits:08X}"     # 8 hex chars = 32 bits
+        return f"0x{bits:08X}"  # 8 hex chars = 32 bits
 
     # ---- float16 (IEEE-754 half, 16 bits) ----
     if prec == np.float16:
         arr = np.asarray(v, dtype=np.float16)
         bits = arr.view(np.uint16).item()
-        return f"0x{bits:04X}"     # 4 hex chars = 16 bits
+        return f"0x{bits:04X}"  # 4 hex chars = 16 bits
 
     # ---- bfloat16 (custom) ----
     # BF16 = top 16 bits of IEEE754 float32
@@ -72,7 +81,7 @@ def float_to_hex(v, prec):
         f32 = np.asarray(v, dtype=np.float32)
         bits32 = f32.view(np.uint32).item()
         bf16 = (bits32 >> 16) & 0xFFFF
-        return f"0x{bf16:04X}"     # 4 hex chars = 16 bits
+        return f"0x{bf16:04X}"  # 4 hex chars = 16 bits
 
     raise ValueError(f"Unsupported precision: {prec}")
 
@@ -88,6 +97,7 @@ def precision_label(prec):
         return "BF16"
     return str(prec)
 
+
 def debug_offset_xmax(attn, xmax, dtype=np.float64):
     Q, K = attn.shape
     attn = np.asarray(attn, dtype=dtype)
@@ -98,9 +108,15 @@ def debug_offset_xmax(attn, xmax, dtype=np.float64):
     attn_oup = np.asarray(attn, dtype=np.float64)
     for q in range(Q):
         for k in range(K):
-            attn_oup[q,k] = attn[q,k] - xmax[q]
-            trace.append(f"[{q},{k}]\ninp={float_to_hex(attn[q,k], dtype)}\nmax={float_to_hex(xmax[q], dtype)}\noup={float_to_hex(attn_oup[q,k], dtype)}\n")
+            attn_oup[q, k] = attn[q, k] - xmax[q]
+            trace.append(
+                f"[{q},{k}]\n"
+                f"inp={float_to_hex(attn[q, k], dtype)}\n"
+                f"max={float_to_hex(xmax[q], dtype)}\n"
+                f"oup={float_to_hex(attn_oup[q, k], dtype)}\n"
+            )
     return trace
+
 
 def debug_find_xmax(attn, dtype=np.float64):
     Q, K = attn.shape
@@ -114,8 +130,10 @@ def debug_find_xmax(attn, dtype=np.float64):
         lane1_max = attn[q, 1]
         traces.append(
             f"=== q = {q} ===\n"
-            f"init_lane0: k=0 inp={float_to_hex(attn[q, 0], dtype)} max_after={float_to_hex(lane0_max, dtype)}\n"
-            f"init_lane1: k=1 inp={float_to_hex(attn[q, 1], dtype)} max_after={float_to_hex(lane1_max, dtype)}\n"
+            f"init_lane0: k=0 inp={float_to_hex(attn[q, 0], dtype)} "
+            f"max_after={float_to_hex(lane0_max, dtype)}\n"
+            f"init_lane1: k=1 inp={float_to_hex(attn[q, 1], dtype)} "
+            f"max_after={float_to_hex(lane1_max, dtype)}\n"
         )
 
         for k in range(2, K, 2):
@@ -133,8 +151,14 @@ def debug_find_xmax(attn, dtype=np.float64):
 
             traces.append(
                 f"[q={q},pair={k // 2}]\n"
-                f"lane0: k={k} inp={float_to_hex(lane0_inp, dtype)} max_before={float_to_hex(lane0_before, dtype)} take={lane0_take} max_after={float_to_hex(lane0_max, dtype)}\n"
-                f"lane1: k={k + 1} inp={float_to_hex(lane1_inp, dtype)} max_before={float_to_hex(lane1_before, dtype)} take={lane1_take} max_after={float_to_hex(lane1_max, dtype)}\n"
+                f"lane0: k={k} inp={float_to_hex(lane0_inp, dtype)} "
+                f"max_before={float_to_hex(lane0_before, dtype)} "
+                f"take={lane0_take} "
+                f"max_after={float_to_hex(lane0_max, dtype)}\n"
+                f"lane1: k={k + 1} inp={float_to_hex(lane1_inp, dtype)} "
+                f"max_before={float_to_hex(lane1_before, dtype)} "
+                f"take={lane1_take} "
+                f"max_after={float_to_hex(lane1_max, dtype)}\n"
             )
 
         final_take = int(lane1_max > lane0_max)
@@ -164,13 +188,19 @@ def debug_compute_part_id(ifmap: np.ndarray, bst_bps: list, prec):
             decision = f"equal -> {direction}"
         trace.append(
             f"  Stage {detail['stage']}: x={feat:.6f} ({float_to_hex(feat, prec)}) "
-            f"vs bp[{detail['bp_index']}]={bp:.6f} ({float_to_hex(bp, prec)}) -> {decision}\n"
+            f"vs bp[{detail['bp_index']}]={bp:.6f} "
+            f"({float_to_hex(bp, prec)}) -> {decision}\n"
         )
     trace.append(f"  Final part_idx = {part_idx}\n")
     return part_idx, trace
 
-def debug_evaluate_pwpa(ifmap: np.ndarray, coeffs: np.ndarray, part_id: int, degree, prec):
-    ofmap, details = evaluate_pwpa_scalar(ifmap, coeffs, part_id, degree, prec, return_details=True)
+
+def debug_evaluate_pwpa(
+    ifmap: np.ndarray, coeffs: np.ndarray, part_id: int, degree, prec
+):
+    ofmap, details = evaluate_pwpa_scalar(
+        ifmap, coeffs, part_id, degree, prec, return_details=True
+    )
     fma_trace = []
     for detail in details:
         y_copy = detail["y_before"]
@@ -178,11 +208,14 @@ def debug_evaluate_pwpa(ifmap: np.ndarray, coeffs: np.ndarray, part_id: int, deg
         coeff_copy = detail["coeff"]
         y = detail["y_after"]
         fma_trace.append(
-            f"  FMA step {detail['step']}: y={float(y_copy):.6f}({float_to_hex(y_copy, prec)}) * "
+            f"  FMA step {detail['step']}: "
+            f"y={float(y_copy):.6f}({float_to_hex(y_copy, prec)}) * "
             f"{float(feat_copy):.6f}({float_to_hex(feat_copy, prec)}) + "
-            f"{float(coeff_copy):.6f}({float_to_hex(coeff_copy, prec)}) = {float(y):.6f}({float_to_hex(float(y), prec)}) \n"
+            f"{float(coeff_copy):.6f}({float_to_hex(coeff_copy, prec)}) = "
+            f"{float(y):.6f}({float_to_hex(float(y), prec)}) \n"
         )
     return ofmap, fma_trace
+
 
 def debug_plot_pwpa(
     ifmap: np.ndarray,
@@ -197,7 +230,10 @@ def debug_plot_pwpa(
     label = str(fn_name).upper()
     fig, ax = plt.subplots(figsize=(10, 6))
     ax.scatter(ifmap, golden_ofmap, label=f"{label} (golden)", color="blue", s=0.5)
-    ax.scatter(ifmap, pwpa_ofmap, label=f"{label} (PWPA)", color="red", s=0.5, marker="d")
+    ax.scatter(
+        ifmap, pwpa_ofmap, label=f"{label} (PWPA)", color="red", s=0.5,
+        marker="d"
+    )
 
     x_min, x_max = ax.get_xlim()
     if breakpoints is not None:
@@ -233,9 +269,10 @@ def debug_plot_pwpa(
     fig.savefig(fname)
     plt.close(fig)
 
-def debug_eps_check(x : np.ndarray, eps, numpy_prec):
+
+def debug_eps_check(x: np.ndarray, eps, numpy_prec):
     """When input becomes subnormal, return bypass."""
-    traces =[]
+    traces = []
     if is_bf16_precision(numpy_prec):
         x_prec = quantize_precision(x, numpy_prec)
         eps_prec = quantize_precision(eps, numpy_prec)
@@ -244,6 +281,7 @@ def debug_eps_check(x : np.ndarray, eps, numpy_prec):
         eps_prec = numpy_prec(eps)
     traces.append(f"  {np.abs(x_prec)} < {eps_prec} ?: {np.abs(x_prec) < eps_prec}\n")
     return traces, np.abs(x_prec) < eps_prec
+
 
 def clean_value(v):
     """Convert NumPy scalar/array/list into plain Python floats recursively."""
@@ -256,22 +294,38 @@ def clean_value(v):
     except Exception:
         return v
 
-def debug_pwpa(ifmap, coeffs : np.ndarray, bst_bps : list, degree : int, prec):
+
+def debug_pwpa(ifmap, coeffs: np.ndarray, bst_bps: list, degree: int, prec):
     pwpa_traces = []
     part_id, part_trace = debug_compute_part_id(ifmap, bst_bps, prec=prec)
-    ofmap_approx, fma_trace = debug_evaluate_pwpa(ifmap, coeffs, part_id, degree, prec=prec)
+    ofmap_approx, fma_trace = debug_evaluate_pwpa(
+        ifmap, coeffs, part_id, degree, prec=prec
+    )
     pwpa_traces.append(part_trace)
     pwpa_traces.append(fma_trace)
     return ofmap_approx, pwpa_traces
+
 
 def debug_error(ofmap_golden, ofmap_approx):
     error_traces = []
     error_traces.append(f"  y_true: {ofmap_golden}\n")
     error_traces.append(f"  y_approx: {ofmap_approx}\n")
-    error_traces.append(f"  error: {(float(ofmap_approx))-(float(ofmap_golden))}\n")
+    error_traces.append(f"  error: {float(ofmap_approx) - float(ofmap_golden)}\n")
     return error_traces
 
-def debug_invsqrt(ifmap, ofmap_golden, coeffs : np.ndarray, bst_bps : list, degree : int, prec, np_prec, eps, eps_const, fn_name=None):
+
+def debug_invsqrt(
+    ifmap,
+    ofmap_golden,
+    coeffs: np.ndarray,
+    bst_bps: list,
+    degree: int,
+    prec,
+    np_prec,
+    eps,
+    eps_const,
+    fn_name=None,
+):
     inv_traces = []
     eps_trace, bypass = debug_eps_check(ifmap, eps, np_prec)
     func = PRE_PROCESS[fn_name]
@@ -287,7 +341,8 @@ def debug_invsqrt(ifmap, ofmap_golden, coeffs : np.ndarray, bst_bps : list, degr
     dtype_name = precision_label(np_prec)
     inv_traces.append(f"  input ({dtype_name}): {ifmap} ({input_hex})\n")
     inv_traces.append(
-        f"  {ifmap} ({input_hex}) decomposed to sign: {sign}, exp: {exp}, mantissa: {mant} ({mant_hex})\n"
+        f"  {ifmap} ({input_hex}) decomposed to sign: {sign}, exp: {exp}, "
+        f"mantissa: {mant} ({mant_hex})\n"
     )
     inv_traces.append(eps_trace)
     inv_traces.append(pwpa_trace[0])
@@ -300,35 +355,67 @@ def debug_invsqrt(ifmap, ofmap_golden, coeffs : np.ndarray, bst_bps : list, degr
     ofmap_approx = eps_inv(bypass, ofmap_approx, eps_const)
     if is_bf16_precision(np_prec):
         ofmap_approx = quantize_precision(ofmap_approx, np_prec)
-    inv_traces.append(f"  After eps adjustment {ofmap_approx} {float_to_hex(ofmap_approx, prec=np_prec)}\n") 
+    inv_traces.append(
+        f"  After eps adjustment {ofmap_approx} "
+        f"{float_to_hex(ofmap_approx, prec=np_prec)}\n"
+    )
     return ofmap_approx, inv_traces
 
-def debug_pwpa_list(ifmap : np.ndarray, ofmap_golden : np.ndarray, coeffs : np.ndarray, raw_bps : list, bst_bps : list, degree : int, prec, np_prec, fn_name=None, eps=None, eps_const=None):
+
+def debug_pwpa_list(
+    ifmap: np.ndarray,
+    ofmap_golden: np.ndarray,
+    coeffs: np.ndarray,
+    raw_bps: list,
+    bst_bps: list,
+    degree: int,
+    prec,
+    np_prec,
+    fn_name=None,
+    eps=None,
+    eps_const=None,
+):
     pwpa_traces = []
     for i, feat in enumerate(ifmap):
         feat_process = feat
-        pwpa_traces.append([f"\n*********************** Iteration: {i} ************************* \n"])
+        pwpa_traces.append(
+            [f"\n*********************** Iteration: {i} ************************* \n"]
+        )
         if fn_name in ["inv", "sqrt", "rsqrt"]:
-            ofmap_approx, pwpa_trace =  debug_invsqrt(feat_process, ofmap_golden[i], coeffs, bst_bps, degree, prec, np_prec, eps, eps_const, fn_name=fn_name)
+            ofmap_approx, pwpa_trace = debug_invsqrt(
+                feat_process,
+                ofmap_golden[i],
+                coeffs,
+                bst_bps,
+                degree,
+                prec,
+                np_prec,
+                eps,
+                eps_const,
+                fn_name=fn_name,
+            )
         else:
-            ofmap_approx, pwpa_trace =  debug_pwpa(feat_process, coeffs, bst_bps, degree, np_prec)
+            ofmap_approx, pwpa_trace = debug_pwpa(
+                feat_process, coeffs, bst_bps, degree, np_prec
+            )
 
         error_traces = debug_error(ofmap_golden[i], ofmap_approx)
-        pwpa_traces.append(pwpa_trace)   
-        pwpa_traces.append(error_traces)   
+        pwpa_traces.append(pwpa_trace)
+        pwpa_traces.append(error_traces)
 
     return pwpa_traces
 
+
 def write_pwpa_debug_file(filename, raw_bps, bst_bps, coeffs, pwpa_traces, prec):
-    with open(filename, "w") as f:    
+    with open(filename, "w") as f:
         f.write("\n=== RAW_BREAKPOINTS ===\n")
         for idx, bp in enumerate(raw_bps):
             hex_bps_prec = float_to_hex(bp, prec)
-            f.write(f"bp{idx}: {bp} {hex_bps_prec}\n")     
+            f.write(f"bp{idx}: {bp} {hex_bps_prec}\n")
         f.write("\n=== BST_BREAKPOINTS ===\n")
         for idx, bp in enumerate(bst_bps[2:]):
             hex_bps_prec = float_to_hex(bp, prec)
-            f.write(f"bp{idx}: {bp} {hex_bps_prec}\n")    
+            f.write(f"bp{idx}: {bp} {hex_bps_prec}\n")
 
         f.write("\n=== COEFFS ===\n")
         for idx, row in enumerate(coeffs):
@@ -343,8 +430,9 @@ def write_pwpa_debug_file(filename, raw_bps, bst_bps, coeffs, pwpa_traces, prec)
             for line in trace_list:
                 f.write("".join(line))
 
+
 def write_softmax_debug_file(filename, traces):
-    with open(filename, "w") as f:    
+    with open(filename, "w") as f:
         for trace in traces:
             # for line in trace_list:
             f.write("".join(trace))

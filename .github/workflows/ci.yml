@@ -263,7 +263,9 @@ jobs:
         with:
           path: |
             /repo/target/sim/build/bin
-          key: verilator-pace-${{ hashFiles('cfg/pace.json') }}-${{ steps.list-make-prerequisites.outputs.hash }}
+          key: >-
+            verilator-pace-${{ hashFiles('cfg/pace.json') }}-${{
+            steps.list-make-prerequisites.outputs.hash }}
           restore-keys: |
             verilator-pace-
       - name: Build Hardware

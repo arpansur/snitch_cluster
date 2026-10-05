@@ -41,6 +41,7 @@ def _naturalsize(size, binary=True):
     base = 1024 if binary else 1000
     return f'{size / base:.1f} {unit}'
 
+
 # Maximum available size in TCDM (in bytes)
 TCDM_HEAP_SIZE = 112 * 1024
 
@@ -146,6 +147,7 @@ def ctype_from_precision_t(prec):
     }
     return precision_t_to_ctype_map[_integer_precision_t(prec)]
 
+
 def hex_ctype_from_precision_t(prec):
     """Convert `precision_t` type to the matching unsigned integer C type."""
     precision_t_to_hex_ctype_map = {
@@ -217,7 +219,6 @@ def type_to_precision_t(dtype):
         return torch_type_to_precision_t_map[dtype]
 
     raise TypeError(f"Unsupported dtype for precision_t mapping: {dtype}")
-
 
 
 def generate_random_array(size, prec='FP64', seed=None):
@@ -311,7 +312,6 @@ def format_array_definition(dtype, uid, array, alignment=None, section=None, hex
     return s
 
 
-
 def format_scalar_initializer(scalar):
     if isinstance(scalar, bool):
         return str(int(scalar))
@@ -333,8 +333,6 @@ def format_scalar_declaration(dtype, uid, alignment=None, section=None):
     else:
         s += ';'
     return s
-
-
 
 
 def float_to_hex(array, prec):
@@ -396,6 +394,7 @@ def format_array_initializer(dtype, array, hex_format=False):
         s += f'\t{el_str},\n'
     s += '}'
     return s
+
 
 def format_struct_definition(dtype, uid, map):
     def format_value(value):

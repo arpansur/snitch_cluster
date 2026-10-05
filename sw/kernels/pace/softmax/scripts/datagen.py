@@ -221,11 +221,13 @@ def generate_data(Q, K, np_type, xmin, xmax, seed=None):
     attn = rng.uniform(xmin, xmax, size=(Q, K))
     return attn.astype(np_type)
 
+
 def resolve_output_path(output_dir, filename):
     if output_dir is None:
         return pathlib.Path(filename)
     output_dir.mkdir(parents=True, exist_ok=True)
     return output_dir / filename
+
 
 def debug_xmax_parallel(attn, dtype=np.float64, fpu_data_width=64):
     Q, K = attn.shape
@@ -235,7 +237,8 @@ def debug_xmax_parallel(attn, dtype=np.float64, fpu_data_width=64):
     if K % chunk_size != 0:
         raise ValueError(
             "debug_xmax_parallel expects K to be divisible by "
-            f"{chunk_size} for dtype={np.dtype(dtype).name} and fpu_data_width={fpu_data_width}"
+            f"{chunk_size} for dtype={np.dtype(dtype).name} and "
+            f"fpu_data_width={fpu_data_width}"
         )
 
     traces = []
@@ -268,7 +271,8 @@ def debug_xmax_parallel(attn, dtype=np.float64, fpu_data_width=64):
                     lane_msgs.append(
                         f"lane{lane}(k={idx}) inp={float_to_hex(inp, dtype)} "
                         f"max_before={float_to_hex(prev_max, dtype)} "
-                        f"take={take} max_after={float_to_hex(regs[reg_idx, lane], dtype)}"
+                        f"take={take} "
+                        f"max_after={float_to_hex(regs[reg_idx, lane], dtype)}"
                     )
                 traces.append(f"reg{reg_idx}: {' | '.join(lane_msgs)}\n")
 
@@ -291,16 +295,25 @@ def debug_xmax_parallel(attn, dtype=np.float64, fpu_data_width=64):
         )
     return traces
 
+
 def fadd_hw(a, b, dtype):
     a_dt = np.asarray(a, dtype=dtype)
     b_dt = np.asarray(b, dtype=dtype)
     return np.add(a_dt, b_dt, dtype=dtype)
 
+
 def log_reg_hw(trace, name, v, dtype):
-    trace.append(f"{name}: {[float_to_hex(el, dtype) for el in np.asarray(v, dtype=dtype)]}\n")
+    trace.append(
+        f"{name}: "
+        f"{[float_to_hex(el, dtype) for el in np.asarray(v, dtype=dtype)]}\n"
+    )
+
 
 def log_reg_op(trace, dst, src_a, src_b, out, dtype):
-    trace.append(f"{dst} = {src_a} + {src_b}: {[float_to_hex(el, dtype) for el in out]}\n")
+    trace.append(
+        f"{dst} = {src_a} + {src_b}: "
+        f"{[float_to_hex(el, dtype) for el in out]}\n"
+    )
 
 
 def reduce_accumulators_hw(acc_regs, dtype, trace=None, names=None):
@@ -382,6 +395,7 @@ def reduce_lanes_hw(vec, dtype):
         trace.append(f"acc_after_lane{lane} = {float_to_hex(acc, dtype)}\n")
     return acc, trace
 
+
 def debug_deno_parallel(attn_exp, dtype, fpu_data_width=64):
     return debug_deno_parallel_configurable(attn_exp, dtype, fpu_data_width=fpu_data_width)
 
@@ -395,12 +409,14 @@ def debug_deno_parallel_configurable(
     if softmax_unroll not in SUPPORTED_SOFTMAX_UNROLLS:
         raise ValueError(f"Unsupported softmax unroll {softmax_unroll}")
     chunk_size = deno_chunk_size(
-        dtype, fpu_data_width, softmax_unroll=softmax_unroll, row_interleaved=row_interleaved
+        dtype, fpu_data_width, softmax_unroll=softmax_unroll,
+        row_interleaved=row_interleaved
     )
     if K % chunk_size != 0:
         raise ValueError(
             "debug_deno_parallel expects K to be divisible by "
-            f"{chunk_size} for dtype={np.dtype(dtype).name} and fpu_data_width={fpu_data_width}"
+            f"{chunk_size} for dtype={np.dtype(dtype).name} and "
+            f"fpu_data_width={fpu_data_width}"
         )
 
     trace = []
@@ -408,7 +424,9 @@ def debug_deno_parallel_configurable(
 
     if row_interleaved:
         grouped = grouped_rows_view(attn, lanes)
-        reg_names = ["ft4", "ft5", "ft6", "ft7", "fs0", "fs1", "fa0", "fa1"][:softmax_unroll]
+        reg_names = ["ft4", "ft5", "ft6", "ft7", "fs0", "fs1", "fa0", "fa1"][
+            :softmax_unroll
+        ]
         acc_count = softmax_unroll if independent_accum else max(1, softmax_unroll // 2)
         for qg in range(grouped.shape[0]):
             acc_regs = np.zeros((acc_count, lanes), dtype=dtype)
@@ -426,9 +444,12 @@ def debug_deno_parallel_configurable(
                     log_reg_hw(trace, reg_names[reg_idx], vec, dtype)
                 if independent_accum:
                     for acc_idx in range(acc_count):
-                        acc_regs[acc_idx] = np.add(acc_regs[acc_idx], exp_regs[acc_idx], dtype=dtype)
+                        acc_regs[acc_idx] = np.add(
+                            acc_regs[acc_idx], exp_regs[acc_idx], dtype=dtype
+                        )
                         log_reg_op(
-                            trace, f"acc{acc_idx}", f"acc{acc_idx}", reg_names[acc_idx], acc_regs[acc_idx], dtype
+                            trace, f"acc{acc_idx}", f"acc{acc_idx}",
+                            reg_names[acc_idx], acc_regs[acc_idx], dtype
                         )
                 else:
                     for acc_idx in range(acc_count):
@@ -437,12 +458,14 @@ def debug_deno_parallel_configurable(
                         )
                         acc_regs[acc_idx] = np.add(acc_regs[acc_idx], pair, dtype=dtype)
                         log_reg_op(
-                            trace, f"acc{acc_idx}", f"acc{acc_idx}", f"pair{acc_idx}", acc_regs[acc_idx], dtype
+                            trace, f"acc{acc_idx}", f"acc{acc_idx}",
+                            f"pair{acc_idx}", acc_regs[acc_idx], dtype
                         )
 
             trace.append("-- register reduction across unrolled accumulators\n")
             acc = reduce_accumulators_hw(
-                acc_regs, dtype, trace=trace, names=[f"acc{idx}" for idx in range(acc_count)]
+                acc_regs, dtype, trace=trace,
+                names=[f"acc{idx}" for idx in range(acc_count)]
             )
             trace.append(f"out[{qg}] = {[float_to_hex(el, dtype) for el in acc]}\n")
         return trace
@@ -462,7 +485,9 @@ def debug_deno_parallel_configurable(
             trace.append(f"-- blk {blk} (k={base}..{base + chunk_size - 1})\n")
 
             exp_regs = []
-            reg_names = ["ft4", "ft5", "ft6", "ft7", "fs0", "fs1", "fa0", "fa1"][:softmax_unroll]
+            reg_names = ["ft4", "ft5", "ft6", "ft7", "fs0", "fs1", "fa0", "fa1"][
+                :softmax_unroll
+            ]
             for reg_idx in range(softmax_unroll):
                 vec = np.asarray(
                     [attn[q, base + reg_idx * lanes + lane] for lane in range(lanes)],
@@ -473,31 +498,49 @@ def debug_deno_parallel_configurable(
 
             if independent_accum:
                 for reg_idx in range(acc_regs.shape[0]):
-                    acc_regs[reg_idx] = np.add(acc_regs[reg_idx], exp_regs[reg_idx], dtype=dtype)
-                    log_reg_op(trace, f"acc{reg_idx}", f"acc{reg_idx}", reg_names[reg_idx], acc_regs[reg_idx], dtype)
+                    acc_regs[reg_idx] = np.add(
+                        acc_regs[reg_idx], exp_regs[reg_idx], dtype=dtype
+                    )
+                    log_reg_op(
+                        trace, f"acc{reg_idx}", f"acc{reg_idx}",
+                        reg_names[reg_idx], acc_regs[reg_idx], dtype
+                    )
             else:
                 pair_regs = []
                 for reg_idx in range(acc_regs.shape[0]):
-                    pair = np.add(exp_regs[2 * reg_idx + 1], exp_regs[2 * reg_idx], dtype=dtype)
+                    pair = np.add(
+                        exp_regs[2 * reg_idx + 1], exp_regs[2 * reg_idx],
+                        dtype=dtype
+                    )
                     pair_regs.append(pair)
-                    log_reg_op(trace, f"pair{reg_idx}", reg_names[2 * reg_idx + 1], reg_names[2 * reg_idx], pair, dtype)
+                    log_reg_op(
+                        trace, f"pair{reg_idx}", reg_names[2 * reg_idx + 1],
+                        reg_names[2 * reg_idx], pair, dtype
+                    )
 
                 for reg_idx in range(acc_regs.shape[0]):
-                    acc_regs[reg_idx] = np.add(acc_regs[reg_idx], pair_regs[reg_idx], dtype=dtype)
-                    log_reg_op(trace, f"acc{reg_idx}", f"acc{reg_idx}", f"pair{reg_idx}", acc_regs[reg_idx], dtype)
+                    acc_regs[reg_idx] = np.add(
+                        acc_regs[reg_idx], pair_regs[reg_idx], dtype=dtype
+                    )
+                    log_reg_op(
+                        trace, f"acc{reg_idx}", f"acc{reg_idx}",
+                        f"pair{reg_idx}", acc_regs[reg_idx], dtype
+                    )
 
         trace.append("-- register reduction across the unrolled accumulators\n")
         reduced = reduce_accumulators_hw(
-            acc_regs, dtype, trace=trace, names=[f"acc{idx}" for idx in range(acc_regs.shape[0])]
+            acc_regs, dtype, trace=trace,
+            names=[f"acc{idx}" for idx in range(acc_regs.shape[0])]
         )
 
         trace.append("-- final lane reduction\n")
-        trace.append(f"acc0={ [float_to_hex(el, dtype) for el in reduced] }\n")
+        trace.append(f"acc0={[float_to_hex(el, dtype) for el in reduced]}\n")
         out0, lane_trace = reduce_lanes_hw(reduced, dtype)
         trace.extend(lane_trace)
         trace.append(f"out[{q}] = {float_to_hex(out0, dtype)}\n")
 
     return trace
+
 
 def compute_deno_parallel_hw(attn_exp, dtype, fpu_data_width=64):
     return compute_deno_parallel_hw_configurable(attn_exp, dtype, fpu_data_width=fpu_data_width)
@@ -564,18 +607,28 @@ def compute_deno_parallel_hw_configurable(
 
             if independent_accum:
                 for reg_idx in range(acc_regs.shape[0]):
-                    acc_regs[reg_idx] = np.add(acc_regs[reg_idx], exp_regs[reg_idx], dtype=dtype)
+                    acc_regs[reg_idx] = np.add(
+                        acc_regs[reg_idx], exp_regs[reg_idx], dtype=dtype
+                    )
             else:
                 pair_regs = []
                 for reg_idx in range(acc_regs.shape[0]):
-                    pair_regs.append(np.add(exp_regs[2 * reg_idx + 1], exp_regs[2 * reg_idx], dtype=dtype))
+                    pair_regs.append(
+                        np.add(
+                            exp_regs[2 * reg_idx + 1], exp_regs[2 * reg_idx],
+                            dtype=dtype
+                        )
+                    )
                 for reg_idx in range(acc_regs.shape[0]):
-                    acc_regs[reg_idx] = np.add(acc_regs[reg_idx], pair_regs[reg_idx], dtype=dtype)
+                    acc_regs[reg_idx] = np.add(
+                        acc_regs[reg_idx], pair_regs[reg_idx], dtype=dtype
+                    )
 
         reduced = reduce_accumulators_hw(acc_regs, dtype)
         out[q], _ = reduce_lanes_hw(reduced, dtype)
 
     return out.astype(dtype)
+
 
 def debug_mul(attn_exp, inv_deno, attn_oup, dtype=np.float64):
     Q, K = attn_exp.shape
@@ -595,6 +648,7 @@ def debug_mul(attn_exp, inv_deno, attn_oup, dtype=np.float64):
             )
     return trace
 
+
 def compute_mul_hw(attn_exp, inv_deno, dtype):
     Q, K = attn_exp.shape
     attn_exp = np.asarray(attn_exp, dtype=dtype)
@@ -605,6 +659,7 @@ def compute_mul_hw(attn_exp, inv_deno, dtype):
             attn_oup[q, k] = np.multiply(attn_exp[q, k], inv_deno[q], dtype=dtype)
     return attn_oup.astype(dtype)
 
+
 def widen_fp_for_compare(raw, fmt):
     raw = np.asarray(raw, dtype=fmt).view(np.uint16).astype(np.uint32)
     sign = (raw & 0x8000) >> 15
@@ -613,11 +668,15 @@ def widen_fp_for_compare(raw, fmt):
     widened = (sign << 31) + 0x70000000 + (exponent << 23) + mantissa
     return widened.astype(np.uint32)
 
+
 def widen_fp_for_fma(raw, fmt):
     raw = np.asarray(raw, dtype=fmt).view(np.uint16).astype(np.uint32)
     return raw
 
-def arrange_params_32b(np_type, bst_bps, coeffs, eps=10**-6, eps_const=0, super_fmt="FP32"):
+
+def arrange_params_32b(
+    np_type, bst_bps, coeffs, eps=10**-6, eps_const=0, super_fmt="FP32"
+):
     params = []
     rows, cols = coeffs.shape
     for deg in range(cols):
@@ -650,12 +709,16 @@ def arrange_params_32b(np_type, bst_bps, coeffs, eps=10**-6, eps_const=0, super_
         if super_fmt == "FP32":
             params.append(int(clean_value(widen_fp_for_compare(eps, np_type))))
             if eps_const is not None:
-                val_eps_const = np_type(eps_const).view(np.uint16).astype(np.uint32)
+                val_eps_const = (
+                    np_type(eps_const).view(np.uint16).astype(np.uint32)
+                )
                 params.append(int(clean_value(val_eps_const)))
         else:
             params.append(int(clean_value(np_type(eps).view(np.uint16))))
             if eps_const is not None:
-                val_eps_const = np_type(eps_const).view(np.uint16).astype(np.uint16)
+                val_eps_const = (
+                    np_type(eps_const).view(np.uint16).astype(np.uint16)
+                )
                 params.append(int(clean_value(val_eps_const)))
     else:
         if super_fmt == "FP32":
@@ -673,10 +736,11 @@ def arrange_params_32b(np_type, bst_bps, coeffs, eps=10**-6, eps_const=0, super_
 
     return params
 
+
 def emit_header(**kwargs):
-    prec = kwargs['prec']
+    prec = kwargs["prec"]
     ctype = data_utils.ctype_from_precision_t(prec)
-    numpy_type   = data_utils.numpy_type_from_precision_t(prec)
+    numpy_type = data_utils.numpy_type_from_precision_t(prec)
     fpu_data_width = kwargs.get("fpu_data_width", 64)
     softmax_unroll = int(kwargs.get("softmax_unroll", 8))
     num_cores = int(kwargs.get("num_cores", 1))
@@ -687,16 +751,18 @@ def emit_header(**kwargs):
     lane_count = pace_lane_count(numpy_type, fpu_data_width)
     layout = normalize_layout(kwargs.get("layout", "row-major"))
     row_interleaved = layout == "column-major"
-    if row_interleaved and not (numpy_type == np.float16 and fpu_data_width == 64 and lane_count == 4):
+    if row_interleaved and not (
+        numpy_type == np.float16 and fpu_data_width == 64 and lane_count == 4
+    ):
         raise ValueError(
             "column-major layout currently requires FP16 with 64b FPU data width and 4 lanes"
         )
     int_type = _integer_precision_t(prec)
     hex_ctype = data_utils.hex_ctype_from_precision_t(int_type)
     param_hex_ctype = data_utils.hex_ctype_from_precision_t(_integer_precision_t("FP32"))
-    xmin  = kwargs["x_min"]
-    xmax  = kwargs["x_max"]
-    n_deg  = kwargs["n_deg"]
+    xmin = kwargs["x_min"]
+    xmax = kwargs["x_max"]
+    n_deg = kwargs["n_deg"]
     n_part = kwargs["n_part"]
     if "rows" in kwargs:
         Q = kwargs["rows"]
@@ -714,8 +780,8 @@ def emit_header(**kwargs):
         raise ValueError(
             f"column-major layout requires Q={Q} to be divisible by PACE_LANES={lane_count}"
         )
-    exp_approx = kwargs["exp"] 
-    frac_approx = kwargs["frac"] 
+    exp_approx = kwargs["exp"]
+    frac_approx = kwargs["frac"]
     eps = kwargs["eps"]
     seed = kwargs.get("seed")
     bp_mode = kwargs.get("bp_mode", "nonuniform")
@@ -733,10 +799,16 @@ def emit_header(**kwargs):
 
     exp_func = EXP_FUNC[exp_approx]
     frac_func = FRAC_FUNC[frac_approx]
-    # softmax_oup =compute_softmax_custom(attn, exp_func, frac_func, numpy_type, exp_kwargs, inv_kwargs)
+    # softmax_oup = compute_softmax_custom(
+    #     attn, exp_func, frac_func, numpy_type, exp_kwargs, inv_kwargs
+    # )
     xmax_oup = find_xmax(attn, dtype=numpy_type)
-    write_softmax_debug_file(resolve_output_path(output_dir, "debug_xmax.txt"),
-                             debug_xmax_parallel(attn, dtype=numpy_type, fpu_data_width=fpu_data_width))
+    write_softmax_debug_file(
+        resolve_output_path(output_dir, "debug_xmax.txt"),
+        debug_xmax_parallel(
+            attn, dtype=numpy_type, fpu_data_width=fpu_data_width
+        )
+    )
     attn_offs = offset_xmax(attn, xmax_oup, dtype=numpy_type)
     traces = debug_offset_xmax(attn, xmax_oup, dtype=numpy_type)
     write_softmax_debug_file(resolve_output_path(output_dir, "debug_offs.txt"), traces)
@@ -749,7 +821,9 @@ def emit_header(**kwargs):
     )
     bst_bps = build_bst_bps(raw_bps)
     eps_const = inv(eps)
-    exp_params = arrange_params_32b(numpy_type, bst_bps[2:], coeffs, eps, eps_const, super_fmt="FP32")
+    exp_params = arrange_params_32b(
+        numpy_type, bst_bps[2:], coeffs, eps, eps_const, super_fmt="FP32"
+    )
     exp_params = np.asarray(exp_params, dtype=np.uint32)
     ofmap = attn_exp.astype(numpy_type)
     ofmap_golden = exp(attn_offs)
@@ -767,9 +841,16 @@ def emit_header(**kwargs):
         softmax_unroll=softmax_unroll,
         row_interleaved=row_interleaved,
     )
-    pwpa_traces_0  = debug_pwpa_list(attn_offs[0], ofmap_golden[0], coeffs, raw_bps, bst_bps, n_deg, prec=prec, np_prec=numpy_type, fn_name="exp", eps=eps, eps_const=eps_const)
-    pwpa_traces_1  = debug_pwpa_list(attn_offs[1], ofmap_golden[1], coeffs, raw_bps, bst_bps, n_deg, prec=prec, np_prec=numpy_type, fn_name="exp", eps=eps, eps_const=eps_const)
-
+    pwpa_traces_0 = debug_pwpa_list(
+        attn_offs[0], ofmap_golden[0], coeffs, raw_bps, bst_bps, n_deg,
+        prec=prec, np_prec=numpy_type, fn_name="exp", eps=eps,
+        eps_const=eps_const
+    )
+    pwpa_traces_1 = debug_pwpa_list(
+        attn_offs[1], ofmap_golden[1], coeffs, raw_bps, bst_bps, n_deg,
+        prec=prec, np_prec=numpy_type, fn_name="exp", eps=eps,
+        eps_const=eps_const
+    )
 
     inv_input = deno.reshape(-1) if row_interleaved else deno
     inv_deno_flat, inv_raw_bps, inv_coeffs = compute_inv_pwpa(
@@ -809,16 +890,15 @@ def emit_header(**kwargs):
         eps=eps,
         eps_const=eps_const,
     )
-    inv_params = arrange_params_32b(numpy_type, inv_bst_bps[2:], inv_coeffs, eps, eps_const, super_fmt="FP32")
+    inv_params = arrange_params_32b(
+        numpy_type, inv_bst_bps[2:], inv_coeffs, eps, eps_const, super_fmt="FP32"
+    )
     inv_params = np.asarray(inv_params, dtype=np.uint32)
 
     golden_attn = compute_softmax_golden(attn, numpy_type)
     print(np.max(golden_attn), np.min(golden_attn))
     print(np.max(attn_oup), np.min(attn_oup))
     # print(attn_oup[:][0:32])
-
-
-
     write_softmax_debug_file(resolve_output_path(output_dir, "debug_deno.txt"), deno_trace)
     write_softmax_debug_file(
         resolve_output_path(output_dir, "debug_mul.txt"),
@@ -826,19 +906,31 @@ def emit_header(**kwargs):
     )
 
     # write_softmax_debug_file("debug_softmax.txt", pwpa_traces)
-    write_pwpa_debug_file(resolve_output_path(output_dir, "debug_softmax_0.txt"), raw_bps, bst_bps, coeffs, pwpa_traces_0, prec=numpy_type)
-    write_pwpa_debug_file(resolve_output_path(output_dir, "debug_softmax_1.txt"), raw_bps, bst_bps, coeffs, pwpa_traces_1, prec=numpy_type)
-    write_pwpa_debug_file(resolve_output_path(output_dir, "debug_inv_deno.txt"), inv_raw_bps, inv_bst_bps, inv_coeffs, inv_pwpa_traces, prec=numpy_type)
+    write_pwpa_debug_file(
+        resolve_output_path(output_dir, "debug_softmax_0.txt"),
+        raw_bps, bst_bps, coeffs, pwpa_traces_0, prec=numpy_type
+    )
+    write_pwpa_debug_file(
+        resolve_output_path(output_dir, "debug_softmax_1.txt"),
+        raw_bps, bst_bps, coeffs, pwpa_traces_1, prec=numpy_type
+    )
+    write_pwpa_debug_file(
+        resolve_output_path(output_dir, "debug_inv_deno.txt"),
+        inv_raw_bps, inv_bst_bps, inv_coeffs, inv_pwpa_traces,
+        prec=numpy_type
+    )
 
-    
-    
     # if fn_name in ["inv", "sqrt", "rsqrt"]:
     #     fn = ACTIVATIONS[fn_name]
     #     eps_const = fn(eps)
     # ifmap, ofmap_golden, ofmap_pwpa, raw_bps, bst_bps, coeffs = execute_pwpa(
-    #     x_min, x_max, n_part, n_deg, n_test, fn_name, prec=prec, np_prec=numpy_type, eps=eps, eps_const=eps_const
+    #     x_min, x_max, n_part, n_deg, n_test, fn_name, prec=prec,
+    #     np_prec=numpy_type, eps=eps, eps_const=eps_const
     # )
-    # pwpa_traces  = debug_pwpa_list(ifmap, ofmap_golden, coeffs, bst_bps, n_deg, prec=prec, np_prec=numpy_type, fn_name=fn_name, eps=eps, eps_const=eps_const)
+    # pwpa_traces = debug_pwpa_list(
+    #     ifmap, ofmap_golden, coeffs, bst_bps, n_deg, prec=prec,
+    #     np_prec=numpy_type, fn_name=fn_name, eps=eps, eps_const=eps_const
+    # )
     # debug_plot_pwpa(ifmap, ofmap_golden, ofmap_pwpa, fplot)
     # write_debug_file(fname, raw_bps, bst_bps, coeffs, pwpa_traces, prec=numpy_type)
 
@@ -879,18 +971,43 @@ def emit_header(**kwargs):
     data_str += [f'#define EXP_PARAMS_LEN {len(exp_params)}']
     data_str += [f'#define INV_PARAMS_LEN {len(inv_params)}']
     data_str += [f'#define SOFTMAX_UNROLL {softmax_unroll}']
-    data_str += [f'#define DENO_LENGTH {deno.size if row_interleaved else lane_count * len(deno)}']
+    data_str += [
+        f'#define DENO_LENGTH '
+        f'{deno.size if row_interleaved else lane_count * len(deno)}'
+    ]
     data_str += [f'typedef {ctype} data_t;']
     data_str += [f'typedef {param_hex_ctype} param_t;']
 
     ifmap_data = pack_rows_across_lanes(attn, lane_count) if row_interleaved else attn
     golden_data = pack_rows_across_lanes(attn_oup, lane_count) if row_interleaved else attn_oup
     ofmap_init = np.zeros_like(golden_data)
-    data_str += [format_array_definition(param_hex_ctype, exp_params_uid, exp_params, alignment=64, hex_format=True)]
-    data_str += [format_array_definition(param_hex_ctype, inv_params_uid, inv_params, alignment=64, hex_format=True)]
-    data_str += [format_array_definition(ctype, ifmap_uid, ifmap_data, alignment=4096, hex_format=True)]
-    data_str += [format_array_definition(ctype, ofmap_uid, ofmap_init, alignment=4096, hex_format=True)]
-    data_str += [format_array_definition(ctype, golden_uid, golden_data, alignment=4096, hex_format=True)]
+    data_str += [
+        format_array_definition(
+            param_hex_ctype, exp_params_uid, exp_params, alignment=64,
+            hex_format=True
+        )
+    ]
+    data_str += [
+        format_array_definition(
+            param_hex_ctype, inv_params_uid, inv_params, alignment=64,
+            hex_format=True
+        )
+    ]
+    data_str += [
+        format_array_definition(
+            ctype, ifmap_uid, ifmap_data, alignment=4096, hex_format=True
+        )
+    ]
+    data_str += [
+        format_array_definition(
+            ctype, ofmap_uid, ofmap_init, alignment=4096, hex_format=True
+        )
+    ]
+    data_str += [
+        format_array_definition(
+            ctype, golden_uid, golden_data, alignment=4096, hex_format=True
+        )
+    ]
     data_str += ["#endif"]
     data_str = '\n\n'.join(data_str)
 
@@ -919,8 +1036,8 @@ def main():
 
     # Load param config file
     param = load_config(args.cfg)
-    param['debug_fname']=args.output.parent / f"{param['debug_fname']}"
-    param['debug_plot']=args.output.parent / f"debug.png"
+    param['debug_fname'] = args.output.parent / f"{param['debug_fname']}"
+    param['debug_plot'] = args.output.parent / "debug.png"
     param['output_dir'] = args.output.parent
     param['section'] = args.section
     param["name"] = args.output.stem
@@ -931,4 +1048,4 @@ def main():
 
 
 if __name__ == '__main__':
-    main()   
+    main()

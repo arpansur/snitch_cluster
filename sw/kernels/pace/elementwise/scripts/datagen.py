@@ -37,9 +37,20 @@ try:
     )
     from snitch.pace.scripts.golden import ACTIVATIONS, golden_model
     from snitch.pace.scripts.invert import invert_sqrt
-    from snitch.pace.scripts.pwpa import build_bst_bps, compute_part_id_bst, evaluate_pwpa, fit_pwpa, generate_bps
+    from snitch.pace.scripts.pwpa import (
+        build_bst_bps,
+        compute_part_id_bst,
+        evaluate_pwpa,
+        fit_pwpa,
+        generate_bps,
+    )
 except ModuleNotFoundError:
-    from debug import clean_value, debug_plot_pwpa, debug_pwpa_list, write_pwpa_debug_file
+    from debug import (
+        clean_value,
+        debug_plot_pwpa,
+        debug_pwpa_list,
+        write_pwpa_debug_file,
+    )
     from golden import ACTIVATIONS, golden_model
     from invert import invert_sqrt
     from pwpa import build_bst_bps, compute_part_id_bst, evaluate_pwpa, fit_pwpa, generate_bps
@@ -130,7 +141,11 @@ def algo_precision(prec):
 
 
 def numpy_type_for_pace_precision(prec):
-    return np.float32 if is_bf16_precision(prec) else data_utils.numpy_type_from_precision_t(prec)
+    return (
+        np.float32
+        if is_bf16_precision(prec)
+        else data_utils.numpy_type_from_precision_t(prec)
+    )
 
 
 def ctype_for_pace_precision(prec):
@@ -138,7 +153,11 @@ def ctype_for_pace_precision(prec):
 
 
 def hex_ctype_for_pace_precision(prec):
-    return "uint16_t" if is_bf16_precision(prec) else data_utils.hex_ctype_from_precision_t(_integer_precision_t(prec))
+    return (
+        "uint16_t"
+        if is_bf16_precision(prec)
+        else data_utils.hex_ctype_from_precision_t(_integer_precision_t(prec))
+    )
 
 
 def storage_bits_for_pace_precision(prec):
@@ -187,7 +206,8 @@ def pace_lane_count(dtype, fpu_data_width):
     lanes = fpu_data_width // bits
     if lanes < 1:
         raise ValueError(
-            f"Invalid lane count {lanes} for dtype={dtype} and fpu_data_width={fpu_data_width}"
+            f"Invalid lane count {lanes} for dtype={dtype} and "
+            f"fpu_data_width={fpu_data_width}"
         )
     return lanes
 
@@ -196,23 +216,32 @@ def load_config(path):
     text = path.read_text()
     if _HAS_JSON5:
         return json5.loads(text)
-    filtered = "\n".join(line for line in text.splitlines() if not line.lstrip().startswith("//"))
+    filtered = "\n".join(
+        line for line in text.splitlines() if not line.lstrip().startswith("//")
+    )
     return json.loads(filtered)
 
 
 def widen_fp_for_compare(raw, fmt):
     """
-    This casting enables the reuse of a single FP32 comparator for both FP16 and FP32 operands, while incurring only minimal hardware overhead.
+    This casting enables the reuse of a single FP32 comparator for both FP16 and
+    FP32 operands, while incurring only minimal hardware overhead.
 
-    The FP16 format consists of a 1-bit sign, a 5-bit exponent, and a 10-bit mantissa, whereas FP32 uses a 1-bit sign, an 8-bit exponent, and a 23-bit mantissa.
+    The FP16 format consists of a 1-bit sign, a 5-bit exponent, and a
+    10-bit mantissa, whereas FP32 uses a 1-bit sign, an 8-bit exponent,
+    and a 23-bit mantissa.
     An FP16 value is therefore encoded as:
     | s | e4 e3 e2 e1 e0 | m9 m8 m7 m6 m5 m4 m3 m2 m1 m0 |.
 
-    To make FP16 values comparable using an FP32 comparator, the FP16 exponent is extended by padding its most significant bits with ones, and the mantissa is extended by padding with zeros.
+    To make FP16 values comparable using an FP32 comparator, the FP16
+    exponent is extended by padding its most significant bits with ones, and
+    the mantissa is extended by padding with zeros.
     The resulting casted FP32-compatible representation is:
     | s | 1 1 1 e4 e3 e2 e1 e0 | 0 0 0 0 0 0 0 0 0 0 0 0 0 0 m9 m8 m7 m6 m5 m4 m3 m2 m1 m0 |.
 
-    This representation preserves the ordering of FP16 values under unsigned comparison, allowing correct comparisons using existing FP32 hardware without additional control logic.
+    This representation preserves the ordering of FP16 values under unsigned
+    comparison, allowing correct comparisons using existing FP32 hardware
+    without additional control logic.
     """
     raw = np.asarray(raw, dtype=fmt).view(np.uint16).astype(np.uint32)
     sign = (raw & 0x8000) >> 15
@@ -281,12 +310,16 @@ def arrange_params(np_type, bst_bps, coeffs, eps=10**-6, eps_const=0, super_fmt=
         if super_fmt == "FP32":
             params.append(int(clean_value(widen_fp_for_compare(eps, np_type))))
             if eps_const is not None:
-                val_eps_const = np_type(eps_const).view(np.uint16).astype(np.uint32)
+                val_eps_const = (
+                    np_type(eps_const).view(np.uint16).astype(np.uint32)
+                )
                 params.append(int(clean_value(val_eps_const)))
         else:
             params.append(int(clean_value(np_type(eps).view(np.uint16))))
             if eps_const is not None:
-                val_eps_const = np_type(eps_const).view(np.uint16).astype(np.uint16)
+                val_eps_const = (
+                    np_type(eps_const).view(np.uint16).astype(np.uint16)
+                )
                 params.append(int(clean_value(val_eps_const)))
     else:
         if super_fmt == "FP32":
@@ -302,7 +335,20 @@ def arrange_params(np_type, bst_bps, coeffs, eps=10**-6, eps_const=0, super_fmt=
     return params
 
 
-def execute_pwpa(x_min, x_max, n_part, degree, n_tests, fn_name, prec, np_prec, eps, eps_const, seed=None, bp_mode="nonuniform"):
+def execute_pwpa(
+    x_min,
+    x_max,
+    n_part,
+    degree,
+    n_tests,
+    fn_name,
+    prec,
+    np_prec,
+    eps,
+    eps_const,
+    seed=None,
+    bp_mode="nonuniform",
+):
     bounds = BOUNDS[fn_name]
     min_bound = x_min if bounds[0] is None else bounds[0]
     max_bound = x_max if bounds[1] is None else bounds[1]
@@ -335,7 +381,9 @@ def execute_pwpa(x_min, x_max, n_part, degree, n_tests, fn_name, prec, np_prec, 
         )
     else:
         part_id = compute_part_id_bst(ifmap, bst_bps, model_prec)
-        ofmap_pwpa = evaluate_pwpa(ifmap, coeffs, part_id=part_id, degree=degree, np_prec=model_prec)
+        ofmap_pwpa = evaluate_pwpa(
+            ifmap, coeffs, part_id=part_id, degree=degree, np_prec=model_prec
+        )
     return ifmap, ofmap_golden, ofmap_pwpa, raw_bps, bst_bps, coeffs
 
 
@@ -506,10 +554,16 @@ def emit_header(**kwargs):
         eps=eps,
         eps_const=eps_const,
     )
-    debug_plot_pwpa(ifmap, ofmap_golden, ofmap_pwpa, fplot, fn_name=fn_name, breakpoints=raw_bps)
+    debug_plot_pwpa(
+        ifmap, ofmap_golden, ofmap_pwpa, fplot, fn_name=fn_name,
+        breakpoints=raw_bps
+    )
     write_pwpa_debug_file(fname, raw_bps, bst_bps, coeffs, pwpa_traces, prec=model_prec)
 
-    params = arrange_params(numpy_type, bst_bps[2:], coeffs, eps, eps_const, super_fmt=super_fmt, prec=prec)
+    params = arrange_params(
+        numpy_type, bst_bps[2:], coeffs, eps, eps_const, super_fmt=super_fmt,
+        prec=prec
+    )
     params = np.asarray(params, dtype=np.uint32)
     ifmap = storage_values_for_pace_precision(prec, ifmap, numpy_type)
     ofmap = storage_values_for_pace_precision(prec, ofmap_pwpa, numpy_type)
@@ -537,15 +591,31 @@ def emit_header(**kwargs):
     data_str += [f"typedef {hex_ctype} data_t;"]
     data_str += [f"typedef {param_hex_ctype} param_t;"]
     # Array forward declarations
-    data_str += [format_array_declaration(f"extern {hex_ctype}", ifmap_uid, ifmap.shape, alignment=4096)]
-    data_str += [format_array_declaration(f"extern {hex_ctype}", ofmap_uid, ofmap.shape, alignment=4096)]
+    data_str += [
+        format_array_declaration(
+            f"extern {hex_ctype}", ifmap_uid, ifmap.shape, alignment=4096
+        )
+    ]
+    data_str += [
+        format_array_declaration(
+            f"extern {hex_ctype}", ofmap_uid, ofmap.shape, alignment=4096
+        )
+    ]
 
     # Parameter definitions
-    data_str += [format_array_definition(param_hex_ctype, params_uid, params, alignment=64, hex_format=True)]
+    data_str += [
+        format_array_definition(
+            param_hex_ctype, params_uid, params, alignment=64, hex_format=True
+        )
+    ]
     # Input definitions
     data_str += [format_array_definition(ctype, ifmap_uid, ifmap, alignment=4096, hex_format=True)]
     # Output storage populated by the kernel at runtime
-    data_str += [format_array_definition(ctype, ofmap_uid, ofmap_init, alignment=4096, hex_format=True)]
+    data_str += [
+        format_array_definition(
+            ctype, ofmap_uid, ofmap_init, alignment=4096, hex_format=True
+        )
+    ]
     # Golden results for BIST
     data_str += [format_array_definition(ctype, "golden", golden, alignment=4096, hex_format=True)]
     data_str += ["#endif"]

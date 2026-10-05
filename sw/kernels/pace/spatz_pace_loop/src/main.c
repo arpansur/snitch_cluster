@@ -52,9 +52,11 @@ static void copy_inputs_to_tcdm(void) {
 }
 
 static void copy_params_to_pace_mem(void) {
-    volatile param_t *pace_mem = (volatile param_t *)snrt_cluster()->pacemem.mem;
+    volatile param_t *pace_mem =
+        (volatile param_t *)snrt_cluster()->pacemem.mem;
 
-    snrt_dma_start_1d((void *)pace_mem, local_params, PARAMS_LEN * sizeof(param_t));
+    snrt_dma_start_1d((void *)pace_mem, local_params,
+                      PARAMS_LEN * sizeof(param_t));
     snrt_dma_wait_all();
 }
 
@@ -64,10 +66,7 @@ static void run_spatz_pace_loop(void) {
     uint32_t avl = INPUTS_LEN;
     uint32_t vlmax;
 
-    asm volatile(SPATZ_VSETVLI
-                 : "=r"(vlmax)
-                 : "r"(avl)
-                 : "memory");
+    asm volatile(SPATZ_VSETVLI : "=r"(vlmax) : "r"(avl) : "memory");
 
     while (avl >= 2 * vlmax) {
         asm volatile(SPATZ_VLE_V0 : : "r"(x) : "memory");
@@ -84,14 +83,10 @@ static void run_spatz_pace_loop(void) {
         avl -= 2 * vlmax;
     }
 
-
     while (avl > 0) {
         uint32_t vl;
 
-        asm volatile(SPATZ_VSETVLI
-                     : "=r"(vl)
-                     : "r"(avl)
-                     : "memory");
+        asm volatile(SPATZ_VSETVLI : "=r"(vl) : "r"(avl) : "memory");
 
         asm volatile(SPATZ_VLE_V0 : : "r"(x) : "memory");
         asm volatile(SPATZ_VPACE_PWPA_V8 : : : "memory");
@@ -115,8 +110,8 @@ static int check_output(void) {
         if (ofmap[i] == golden[i]) continue;
 
         if (errors < 16) {
-            printf("idx:%u actual=0x%x golden=0x%x\n",
-                   i, (uint32_t)ofmap[i], (uint32_t)golden[i]);
+            printf("idx:%u actual=0x%x golden=0x%x\n", i, (uint32_t)ofmap[i],
+                   (uint32_t)golden[i]);
         }
         errors++;
     }

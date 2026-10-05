@@ -4,9 +4,9 @@
 //
 // Arpan Suravi Prasad <prasadar@iis.ee.ethz.ch>
 
-#include "snrt.h"
 #include "data.h"
 #include "pace_elementwise.h"
+#include "snrt.h"
 
 #ifndef PACE_EXEC_VECTOR
 #define PACE_EXEC_VECTOR 1
@@ -56,8 +56,11 @@ static int check_output(const data_t *actual, const data_t *expected, int len) {
         if (actual_data == expected_data) {
             errors--;
         } else {
-            printf("idx:%d, errors=%d, actual_data=%x, golden_data=%x, actual_ptr=%p, golden_ptr=%p\n",
-                   i, errors, actual_data, expected_data, &actual[i], &expected[i]);
+            printf(
+                "idx:%d, errors=%d, actual_data=%x, golden_data=%x, "
+                "actual_ptr=%p, golden_ptr=%p\n",
+                i, errors, actual_data, expected_data, &actual[i],
+                &expected[i]);
         }
     }
 
@@ -106,8 +109,10 @@ int main() {
 
     if (snrt_is_compute_core()) {
 #if PACE_EXEC_VECTOR
-        snrt_ssr_loop_1d(SNRT_SSR_DM0, inputs_len_per_core / PACE_LANES, PACE_SSR_STRIDE);
-        snrt_ssr_loop_1d(SNRT_SSR_DM1, inputs_len_per_core / PACE_LANES, PACE_SSR_STRIDE);
+        snrt_ssr_loop_1d(SNRT_SSR_DM0, inputs_len_per_core / PACE_LANES,
+                         PACE_SSR_STRIDE);
+        snrt_ssr_loop_1d(SNRT_SSR_DM1, inputs_len_per_core / PACE_LANES,
+                         PACE_SSR_STRIDE);
         snrt_ssr_read(SNRT_SSR_DM0, SNRT_SSR_1D, core_local_x);
         snrt_ssr_write(SNRT_SSR_DM1, SNRT_SSR_1D, core_local_y);
 
@@ -127,7 +132,10 @@ int main() {
             pace_scalar_bits_t pace_out_bits;
 
             __asm__ volatile("" : : "f"(pace_in));
-            __asm__ volatile(PACE_SCALAR_OP("ft1", "ft0") : "=f"(pace_out) : : "memory");
+            __asm__ volatile(PACE_SCALAR_OP("ft1", "ft0")
+                             : "=f"(pace_out)
+                             :
+                             : "memory");
             pace_out_bits.f = pace_out;
             core_local_y[i] = pace_out_bits.u;
         }
@@ -140,10 +148,11 @@ int main() {
 
     int32_t end_cycle = snrt_mcycle();
     if (core_idx == 0) {
-        printf("start cycle: %d, end_cycle: %d, diff_cycle:%d\n",
-               start_cycle, end_cycle, end_cycle - start_cycle);
+        printf("start cycle: %d, end_cycle: %d, diff_cycle:%d\n", start_cycle,
+               end_cycle, end_cycle - start_cycle);
         printf("pace start cycle: %d, pace end_cycle: %d, pace diff_cycle:%d\n",
-               pace_start_cycle, pace_end_cycle, pace_end_cycle - pace_start_cycle);
+               pace_start_cycle, pace_end_cycle,
+               pace_end_cycle - pace_start_cycle);
         printf("dma start cycle: %d, dma end_cycle: %d, dma diff_cycle:%d\n",
                dma_pace_start_cycle, dma_pace_end_cycle,
                dma_pace_end_cycle - dma_pace_start_cycle);

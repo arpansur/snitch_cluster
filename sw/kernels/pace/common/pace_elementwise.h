@@ -24,7 +24,8 @@ static inline void pace_configure_fmode(void) {
     asm volatile("csrw fmode, %0" : : "rK"(PACE_FMODE) : "memory");
 }
 
-#if !defined(PACE_DTYPE_FP32) && !defined(PACE_DTYPE_FP16) && !defined(PACE_DTYPE_BFP16)
+#if !defined(PACE_DTYPE_FP32) && !defined(PACE_DTYPE_FP16) && \
+    !defined(PACE_DTYPE_BFP16)
 #if defined(ENABLE_FP32)
 #define PACE_DTYPE_FP32 1
 #define PACE_DTYPE_FP16 0
@@ -94,7 +95,8 @@ static inline void pace_configure_fmode(void) {
 #error "Unsupported PACE datatype"
 #endif
 
-#if defined(PACE_MODE_PWPA) && defined(PACE_MODE_INV) && defined(PACE_MODE_SQRT) && defined(PACE_MODE_RSQRT)
+#if defined(PACE_MODE_PWPA) && defined(PACE_MODE_INV) && \
+    defined(PACE_MODE_SQRT) && defined(PACE_MODE_RSQRT)
 #if PACE_MODE_PWPA
 #define PACE_SCALAR PACE_PWPA
 #define PACE_VECTOR PACE_VPWPA
@@ -118,12 +120,11 @@ static inline void pace_configure_fmode(void) {
 #define PACE_SCALAR_OP(rd, rs1) PACE_SCALAR rd ", " rs1 "\n\t"
 #define PACE_VECTOR_OP(rd, rs1, rs2) PACE_VECTOR rd ", " rs1 ", " rs2 "\n\t"
 
-#define PACE_FREP_VPACE(repeat_count, instruction)       \
-    __asm__ volatile(                                    \
-        "frep.o  %[n], 1, 0, 0\n\t" instruction "\n\t"   \
-        :                                                \
-        : [n] "r"(repeat_count)                          \
-        : "ft0", "ft1", "memory")
+#define PACE_FREP_VPACE(repeat_count, instruction)                  \
+    __asm__ volatile("frep.o  %[n], 1, 0, 0\n\t" instruction "\n\t" \
+                     :                                              \
+                     : [ n ] "r"(repeat_count)                      \
+                     : "ft0", "ft1", "memory")
 
 static inline void pwpa_vector_fp32(uint32_t repeat_count) {
     PACE_FREP_VPACE(repeat_count, "vpace.pwpa.s ft1, ft0, ft0");
@@ -173,7 +174,8 @@ static inline void pace_rsqrt_vector_bfp16(uint32_t repeat_count) {
     PACE_FREP_VPACE(repeat_count, "vpace.rsqrt.h ft1, ft0, ft0");
 }
 
-#if defined(PACE_MODE_PWPA) && defined(PACE_MODE_INV) && defined(PACE_MODE_SQRT) && defined(PACE_MODE_RSQRT)
+#if defined(PACE_MODE_PWPA) && defined(PACE_MODE_INV) && \
+    defined(PACE_MODE_SQRT) && defined(PACE_MODE_RSQRT)
 static inline void pace_vector_ssr(uint32_t repeat_count) {
 #if PACE_MODE_PWPA
 #if PACE_DTYPE_FP32

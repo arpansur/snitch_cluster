@@ -43,17 +43,19 @@ def generate_bps(xmin, xmax, parts, mode="nonuniform"):
 
     raise ValueError(f"Unsupported breakpoint generation mode: {mode}")
 
+
 def fit_pwpa(bps, degree, func, num_samples=1000):
     num_parts = len(bps) - 1
     coeffs = np.zeros((num_parts, degree + 1))
     for part in range(num_parts):
         left = bps[part]
-        right = bps[part+1]
+        right = bps[part + 1]
         xs = np.linspace(left, right, num_samples)
         ys = func(xs)
         p = np.polyfit(xs, ys, deg=degree)
         coeffs[part] = p[::-1]
     return coeffs
+
 
 def compute_part_id(ifmap: np.ndarray, bps: list):
     """Map each input to the partition on its left breakpoint match.
@@ -74,9 +76,14 @@ def compute_part_id(ifmap: np.ndarray, bps: list):
 
     return np.clip(part_id, 0, len(bps_fp64) - 2)
 
+
 def compute_part_id_with_details(ifmap, bst_bps, prec):
     feat_prec = quantize_precision(ifmap, prec)
-    feat = feat_prec.item() if np.asarray(feat_prec).shape == () else quantize_precision(feat_prec, prec).item()
+    feat = (
+        feat_prec.item()
+        if np.asarray(feat_prec).shape == ()
+        else quantize_precision(feat_prec, prec).item()
+    )
     search_bps = quantize_precision(bst_bps[2:], prec)
     parts = len(bst_bps) - 1
     max_stage = int(np.log2(parts))
@@ -113,6 +120,7 @@ def compute_part_id_with_details(ifmap, bst_bps, prec):
     details.append({"part_id": part_id})
     return part_id, details
 
+
 def compute_part_id_bst(ifmap: np.ndarray, bst_bps: list, prec):
     ifmap_prec = quantize_precision(ifmap, prec)
     flat_ifmap = ifmap_prec.reshape(-1)
@@ -121,7 +129,10 @@ def compute_part_id_bst(ifmap: np.ndarray, bst_bps: list, prec):
         flat_part_ids[idx], _ = compute_part_id_with_details(feat, bst_bps, prec)
     return flat_part_ids.reshape(ifmap_prec.shape)
 
-def evaluate_pwpa_scalar(ifmap, coeffs: np.ndarray, part_id: int, degree, np_prec, return_details=False):
+
+def evaluate_pwpa_scalar(
+    ifmap, coeffs: np.ndarray, part_id: int, degree, np_prec, return_details=False
+):
     feat_prec = quantize_precision(ifmap, np_prec)
     feat = np.asarray(feat_prec, dtype=np.float64).item()
     coeffs_prec = quantize_precision(coeffs, np_prec)
@@ -140,7 +151,11 @@ def evaluate_pwpa_scalar(ifmap, coeffs: np.ndarray, part_id: int, degree, np_pre
                 {
                     "step": degree - deg - 1,
                     "y_before": y_before.item(),
-                    "x": feat_prec.item() if np.asarray(feat_prec).shape == () else feat_prec,
+                    "x": (
+                        feat_prec.item()
+                        if np.asarray(feat_prec).shape == ()
+                        else feat_prec
+                    ),
                     "coeff": coeff_val.item(),
                     "y_after": quantize_precision(y, np_prec).item(),
                 }
@@ -151,20 +166,26 @@ def evaluate_pwpa_scalar(ifmap, coeffs: np.ndarray, part_id: int, degree, np_pre
         return ofmap, details
     return ofmap
 
-def evaluate_pwpa(ifmap: np.ndarray, coeffs: np.ndarray, part_id: np.ndarray, degree, np_prec):
-    ifmap_prec  = quantize_precision(ifmap, np_prec)
-    ofmap       = np.zeros_like(ifmap_prec, dtype=np.float32 if is_bf16_precision(np_prec) else np_prec)
+
+def evaluate_pwpa(
+    ifmap: np.ndarray, coeffs: np.ndarray, part_id: np.ndarray, degree, np_prec
+):
+    ifmap_prec = quantize_precision(ifmap, np_prec)
+    ofmap = np.zeros_like(
+        ifmap_prec, dtype=np.float32 if is_bf16_precision(np_prec) else np_prec
+    )
 
     for idx, feat in enumerate(ifmap_prec):
         ofmap[idx] = evaluate_pwpa_scalar(feat, coeffs, part_id[idx], degree, np_prec)
     return ofmap
+
 
 def build_bst_bps(bps):
     parts = len(bps) - 1
     if parts == 1:
         return [0, 1]
     indices = list(range(1, parts + 2))  # [1, 2, .. , N+1]
-    max_stage = int(np.log2(parts)) 
+    max_stage = int(np.log2(parts))
     layout = [indices[0] - 1, indices[-1] - 1]  # [0, 1 ... , N]
     for stage in range(max_stage + 1):
         segment_size = 1 << (max_stage - stage + 1)

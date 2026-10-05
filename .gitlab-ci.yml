@@ -167,7 +167,11 @@ snitch-cluster-pace-vsim:
 # Test Spatz + PACE configuration
 snitch-cluster-spatz-pace-vsim:
   script:
-    - make CFG_OVERRIDE=cfg/spatz-pace.json SN_SPATZ_PACE=ON SN_BUILD_SPATZ_PACE_APPS=ON vector spatz-axpy spatz-fmatmul spatz_pace_loop spatz_pace_loop_pwpa_fp16 spatz_pace_loop_pwpa_bfp16 -j
+    - >
+      make CFG_OVERRIDE=cfg/spatz-pace.json SN_SPATZ_PACE=ON
+      SN_BUILD_SPATZ_PACE_APPS=ON vector spatz-axpy spatz-fmatmul
+      spatz_pace_loop spatz_pace_loop_pwpa_fp16
+      spatz_pace_loop_pwpa_bfp16 -j
     - make CFG_OVERRIDE=cfg/spatz-pace.json SN_SPATZ_PACE=ON vsim TRACE=OFF -j
     - cd test
     - ../util/experiments/run.py spatz.yaml --simulator vsim -j --run-dir runs/vsim-spatz-pace

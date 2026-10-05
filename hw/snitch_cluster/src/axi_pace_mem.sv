@@ -40,8 +40,10 @@ module axi_pace_mem #(
   parameter int unsigned IdWidth    = 0,
   parameter int unsigned NumBanks   = 1,
   parameter int unsigned BufDepth   = 1,
-  localparam int unsigned EffectivePaceDataWidth = (PaceDataWidth > 0) ? PaceDataWidth : 1,
-  localparam int unsigned PaceCoeffWidth = PaceEnable ? ((PaceDegree + 1) * PaceParts * PaceDataWidth) : 0,
+  localparam int unsigned EffectivePaceDataWidth =
+      (PaceDataWidth > 0) ? PaceDataWidth : 1,
+  localparam int unsigned PaceCoeffWidth =
+      PaceEnable ? ((PaceDegree + 1) * PaceParts * PaceDataWidth) : 0,
   localparam int unsigned PaceBoundWidth = PaceEnable ? ((PaceParts - 1) * PaceDataWidth) : 0,
   localparam int unsigned PaceEpsWidth   = PaceEnable ? (2 * PaceDataWidth * PaceEps) : 0,
   localparam int unsigned PaceParamWidth = PaceCoeffWidth + PaceBoundWidth + PaceEpsWidth,
@@ -98,7 +100,8 @@ module axi_pace_mem #(
   `ASSERT_INIT(PACE_EPS_VALUE, (PaceEps == 0) | (PaceEps == 1),
                "Only PaceEps=0 or 1 is supported it is an enable")
 
-  localparam int unsigned TotalWords   = ((PaceParamWidth > 0 ? PaceParamWidth : 1) + DataWidth - 1) / DataWidth;
+  localparam int unsigned TotalWords =
+      ((PaceParamWidth > 0 ? PaceParamWidth : 1) + DataWidth - 1) / DataWidth;
   localparam int unsigned MemAddrWidth = $clog2(TotalWords);
   localparam int unsigned AddrOffset   = $clog2(DataWidth / 8);
 
@@ -123,10 +126,12 @@ module axi_pace_mem #(
 
   localparam int unsigned DataWidthRatio = DataWidth / EffectivePaceDataWidth;
 
-  for (genvar ii = 0; ii < ((PaceParamWidth > 0 ? PaceParamWidth : 1) / EffectivePaceDataWidth); ii++) begin
-    localparam int jj_rem = ii % DataWidthRatio;
-    localparam int jj_quo = ii / DataWidthRatio;
+  for (genvar ii = 0;
+       ii < ((PaceParamWidth > 0 ? PaceParamWidth : 1) / EffectivePaceDataWidth);
+       ii++) begin : gen_pace_param
+    localparam int Rem = ii % DataWidthRatio;
+    localparam int Quo = ii / DataWidthRatio;
     assign pace_param_o[ii*EffectivePaceDataWidth+:EffectivePaceDataWidth] =
-      mem_content[jj_quo][jj_rem*EffectivePaceDataWidth+:EffectivePaceDataWidth];
+      mem_content[Quo][Rem*EffectivePaceDataWidth+:EffectivePaceDataWidth];
   end
 endmodule

@@ -48,7 +48,8 @@ typedef uint16_t raw_data_t;
 #error "SOFTMAX_UNROLL must be 3, 4 or 8"
 #endif
 
-#if defined(ENABLE_FP16) && (PACE_LANES == 4) && (FPU_DATA_WIDTH == 64) && PACE_LAYOUT_COLUMN_MAJOR
+#if defined(ENABLE_FP16) && (PACE_LANES == 4) && (FPU_DATA_WIDTH == 64) && \
+    PACE_LAYOUT_COLUMN_MAJOR
 #define PACE_ROW_INTERLEAVED 1
 #define PACE_XMAX_ITERS (K_SIZE / 4)
 #define PACE_EXP_ITERS (K_SIZE / SOFTMAX_UNROLL)
@@ -60,7 +61,8 @@ typedef uint16_t raw_data_t;
 #define PACE_VEC_ITERS (K_SIZE / PACE_LANES)
 #endif
 
-#if defined(ENABLE_FP16) && (PACE_LANES == 4) && (FPU_DATA_WIDTH == 64) && !PACE_LAYOUT_COLUMN_MAJOR
+#if defined(ENABLE_FP16) && (PACE_LANES == 4) && (FPU_DATA_WIDTH == 64) && \
+    !PACE_LAYOUT_COLUMN_MAJOR
 #error "FP16x4 softmax currently requires column-major layout"
 #endif
 
@@ -118,14 +120,16 @@ static inline int pace_softmax_init_work(pace_softmax_work_t *work) {
         return 1;
     }
 
-    const uint32_t work_items = PACE_ROW_INTERLEAVED ? (Q_SIZE / PACE_LANES) : Q_SIZE;
+    const uint32_t work_items =
+        PACE_ROW_INTERLEAVED ? (Q_SIZE / PACE_LANES) : Q_SIZE;
     const uint32_t rows_per_core = work_items / active_compute_core_count;
     const uint32_t extra_rows = work_items % active_compute_core_count;
-    const uint32_t row_start =
-        core_idx * rows_per_core + (core_idx < extra_rows ? core_idx : extra_rows);
+    const uint32_t row_start = core_idx * rows_per_core +
+                               (core_idx < extra_rows ? core_idx : extra_rows);
     const uint32_t row_count =
         core_active ? (rows_per_core + (core_idx < extra_rows ? 1u : 0u)) : 0u;
-    const uint32_t input_span = PACE_ROW_INTERLEAVED ? (K_SIZE * PACE_LANES) : K_SIZE;
+    const uint32_t input_span =
+        PACE_ROW_INTERLEAVED ? (K_SIZE * PACE_LANES) : K_SIZE;
 
     work->core_idx = core_idx;
     work->core_active = core_active;
@@ -148,8 +152,8 @@ static inline pace_softmax_buffers_t pace_softmax_init_buffers(
     buffers.inv_denom_buf = buffers.denom_buf + DENO_LENGTH;
     buffers.scratch_buf = buffers.inv_denom_buf + DENO_LENGTH;
     buffers.xmax_lane_buf = buffers.scratch_buf + work->core_idx * PACE_LANES;
-    buffers.denom_lane_buf =
-        buffers.scratch_buf + work->scratch_plane_size + work->core_idx * PACE_LANES;
+    buffers.denom_lane_buf = buffers.scratch_buf + work->scratch_plane_size +
+                             work->core_idx * PACE_LANES;
     buffers.denom_write_ptr = buffers.denom_buf + work->denom_offset;
     buffers.denom_inv_src = buffers.denom_buf + work->denom_offset;
     buffers.inv_mul_src = buffers.inv_denom_buf + work->denom_offset;
@@ -167,7 +171,8 @@ static inline void pace_softmax_configure(const pace_softmax_work_t *work) {
 static inline void pace_softmax_load_exp_params_and_input(
     pace_softmax_buffers_t *buffers) {
     if (snrt_is_dm_core()) {
-        snrt_dma_start_1d(buffers->pace_mem, exp_params, EXP_PARAMS_LEN * sizeof(param_t));
+        snrt_dma_start_1d(buffers->pace_mem, exp_params,
+                          EXP_PARAMS_LEN * sizeof(param_t));
         snrt_dma_wait_all();
         snrt_dma_start_1d(buffers->input_buf, &ifmap[0][0],
                           INPUTS_LEN * sizeof(raw_data_t));
@@ -175,9 +180,11 @@ static inline void pace_softmax_load_exp_params_and_input(
     }
 }
 
-static inline void pace_softmax_load_inv_params(pace_softmax_buffers_t *buffers) {
+static inline void pace_softmax_load_inv_params(
+    pace_softmax_buffers_t *buffers) {
     if (snrt_is_dm_core()) {
-        snrt_dma_start_1d(buffers->pace_mem, inv_params, INV_PARAMS_LEN * sizeof(param_t));
+        snrt_dma_start_1d(buffers->pace_mem, inv_params,
+                          INV_PARAMS_LEN * sizeof(param_t));
         snrt_dma_wait_all();
     }
 }
@@ -191,8 +198,7 @@ static inline void pace_softmax_store_output(pace_softmax_buffers_t *buffers) {
 }
 
 static inline int pace_softmax_check_output(raw_data_t *actual,
-                                            raw_data_t *expected,
-                                            int len) {
+                                            raw_data_t *expected, int len) {
     int errors = len;
     for (int i = 0; i < len; i++) {
         raw_data_t actual_data = actual[i];
@@ -200,8 +206,11 @@ static inline int pace_softmax_check_output(raw_data_t *actual,
         if (actual_data == expected_data) {
             errors--;
         } else {
-            printf("idx:%d, errors=%d, actual_data=%x, golden_data=%x, actual_ptr=%p, golden_ptr=%p\n",
-                   i, errors, actual_data, expected_data, &actual[i], &expected[i]);
+            printf(
+                "idx:%d, errors=%d, actual_data=%x, golden_data=%x, "
+                "actual_ptr=%p, golden_ptr=%p\n",
+                i, errors, actual_data, expected_data, &actual[i],
+                &expected[i]);
         }
     }
     return errors;
@@ -226,8 +235,8 @@ static inline void pace_softmax_xmax_fp16x4(raw_data_t *xmax_lane_buf,
         "vfmax.h ft6, ft6, ft5\n\t"
         "fsd ft6, 0(%[max])\n\t"
         :
-        : [neg_inf] "r"(neg_inf_vec), [n] "r"(PACE_XMAX_ITERS - 1),
-          [max] "r"(xmax_lane_buf)
+        : [ neg_inf ] "r"(neg_inf_vec), [ n ] "r"(PACE_XMAX_ITERS - 1),
+          [ max ] "r"(xmax_lane_buf)
         : "ft3", "ft4", "ft5", "ft6", "ft7", "memory");
 }
 
@@ -292,7 +301,7 @@ static inline void pace_softmax_store_deno_fp16x4(
         "fld ft3, 0(%[sum_src])\n\t"
         "fsd ft3, 0(%[sum_dst])\n\t"
         :
-        : [sum_src] "r"(denom_lane_buf), [sum_dst] "r"(*denom_write_ptr)
+        : [ sum_src ] "r"(denom_lane_buf), [ sum_dst ] "r"(*denom_write_ptr)
         : "ft3", "memory");
     *denom_write_ptr += PACE_LANES;
 }
@@ -321,8 +330,8 @@ static inline void pace_softmax_compute_xmax(raw_data_t *xmax_lane_buf) {
         "vfmax.s  ft6, ft6, ft5\n\t"
         "fsd ft6, 0(%[max]) \n\t"
         :
-        : [neg_inf] "r"(PACE_NEG_INF_BITS), [n] "r"(PACE_XMAX_ITERS - 1),
-          [max] "r"(xmax_lane_buf)
+        : [ neg_inf ] "r"(PACE_NEG_INF_BITS), [ n ] "r"(PACE_XMAX_ITERS - 1),
+          [ max ] "r"(xmax_lane_buf)
         : "ft3", "ft4", "ft5", "ft6", "ft7", "memory");
 #else
     __asm__ volatile(
@@ -340,8 +349,8 @@ static inline void pace_softmax_compute_xmax(raw_data_t *xmax_lane_buf) {
         "fmax.s   ft3, ft6, ft5\n\t"
         "fsw ft3, 0(%[max]) \n\t"
         :
-        : [neg_inf] "r"(PACE_NEG_INF_BITS), [n] "r"(PACE_XMAX_ITERS - 1),
-          [max] "r"(xmax_lane_buf)
+        : [ neg_inf ] "r"(PACE_NEG_INF_BITS), [ n ] "r"(PACE_XMAX_ITERS - 1),
+          [ max ] "r"(xmax_lane_buf)
         : "ft3", "ft4", "ft5", "ft6", "ft7", "memory");
 #endif
 }
@@ -479,26 +488,28 @@ static inline void pace_softmax_store_denom(
         "flw ft3, 0(%[sum_src])\n\t"
         "fsw ft3, 0(%[sum_dst])\n\t"
         "addi %[sum_dst], %[sum_dst], 4\t\n"
-        : [sum_dst] "+r"(*denom_write_ptr)
-        : [sum_src] "r"(denom_lane_buf)
+        : [ sum_dst ] "+r"(*denom_write_ptr)
+        : [ sum_src ] "r"(denom_lane_buf)
         : "ft3", "memory");
 #endif
 }
 
 static inline void pace_softmax_compute_exp_stage(
-    const pace_softmax_work_t *work,
-    pace_softmax_buffers_t *buffers) {
+    const pace_softmax_work_t *work, pace_softmax_buffers_t *buffers) {
     if (!work->core_active || work->row_count == 0) {
         return;
     }
 
-    snrt_ssr_loop_1d(SNRT_SSR_DM0, PACE_VEC_ITERS * work->row_count, PACE_SSR_STRIDE);
+    snrt_ssr_loop_1d(SNRT_SSR_DM0, PACE_VEC_ITERS * work->row_count,
+                     PACE_SSR_STRIDE);
     snrt_ssr_read(SNRT_SSR_DM0, SNRT_SSR_1D,
                   buffers->input_buf + work->input_offset);
-    snrt_ssr_loop_1d(SNRT_SSR_DM1, PACE_VEC_ITERS * work->row_count, PACE_SSR_STRIDE);
+    snrt_ssr_loop_1d(SNRT_SSR_DM1, PACE_VEC_ITERS * work->row_count,
+                     PACE_SSR_STRIDE);
     snrt_ssr_read(SNRT_SSR_DM1, SNRT_SSR_1D,
                   buffers->input_buf + work->input_offset);
-    snrt_ssr_loop_1d(SNRT_SSR_DM2, PACE_VEC_ITERS * work->row_count, PACE_SSR_STRIDE);
+    snrt_ssr_loop_1d(SNRT_SSR_DM2, PACE_VEC_ITERS * work->row_count,
+                     PACE_SSR_STRIDE);
     snrt_ssr_write(SNRT_SSR_DM2, SNRT_SSR_1D,
                    buffers->exp_buf + work->input_offset);
     snrt_ssr_enable();
@@ -516,8 +527,7 @@ static inline void pace_softmax_compute_exp_stage(
 }
 
 static inline void pace_softmax_compute_inv_denom(
-    const pace_softmax_work_t *work,
-    pace_softmax_buffers_t *buffers) {
+    const pace_softmax_work_t *work, pace_softmax_buffers_t *buffers) {
     snrt_ssr_loop_1d(SNRT_SSR_DM0, work->row_count, PACE_SSR_STRIDE);
     snrt_ssr_read(SNRT_SSR_DM0, SNRT_SSR_1D, buffers->denom_inv_src);
     snrt_ssr_loop_1d(SNRT_SSR_DM2, work->row_count, PACE_SSR_STRIDE);
@@ -526,30 +536,28 @@ static inline void pace_softmax_compute_inv_denom(
     snrt_ssr_enable();
 #if PACE_LANES > 1
     __asm__ volatile(
-        "frep.o  %[n], 1, 0, 0\n\t"
-        PACE_VINV_OP("ft2", "ft0", "ft0")
+        "frep.o  %[n], 1, 0, 0\n\t" PACE_VINV_OP("ft2", "ft0", "ft0")
         :
-        : [n] "r"(work->row_count - 1)
+        : [ n ] "r"(work->row_count - 1)
         : "ft0", "ft2", "memory");
 #else
-    __asm__ volatile(
-        "frep.o  %[n], 1, 0, 0\n\t"
-        PACE_INV_OP("ft1", "ft0")
-        :
-        : [n] "r"(work->row_count - 1)
-        : "ft0", "ft1", "memory");
+    __asm__ volatile("frep.o  %[n], 1, 0, 0\n\t" PACE_INV_OP("ft1", "ft0")
+                     :
+                     : [ n ] "r"(work->row_count - 1)
+                     : "ft0", "ft1", "memory");
 #endif
     snrt_fpu_fence();
     snrt_ssr_disable();
 }
 
 static inline void pace_softmax_apply_inv_denom(
-    const pace_softmax_work_t *work,
-    pace_softmax_buffers_t *buffers) {
-    snrt_ssr_loop_1d(SNRT_SSR_DM0, work->row_count * PACE_VEC_ITERS, PACE_SSR_STRIDE);
+    const pace_softmax_work_t *work, pace_softmax_buffers_t *buffers) {
+    snrt_ssr_loop_1d(SNRT_SSR_DM0, work->row_count * PACE_VEC_ITERS,
+                     PACE_SSR_STRIDE);
     snrt_ssr_read(SNRT_SSR_DM0, SNRT_SSR_1D,
                   buffers->exp_buf + work->input_offset);
-    snrt_ssr_loop_1d(SNRT_SSR_DM2, work->row_count * PACE_VEC_ITERS, PACE_SSR_STRIDE);
+    snrt_ssr_loop_1d(SNRT_SSR_DM2, work->row_count * PACE_VEC_ITERS,
+                     PACE_SSR_STRIDE);
     snrt_ssr_write(SNRT_SSR_DM2, SNRT_SSR_1D,
                    buffers->softmax_buf + work->input_offset);
     snrt_ssr_enable();
@@ -561,7 +569,7 @@ static inline void pace_softmax_apply_inv_denom(
             "frep.o  %[n], 1, 0, 0\n\t"
             "vfmul.h  ft2, ft3, ft0\n\t"
             :
-            : [inv] "r"(buffers->inv_mul_src), [n] "r"(PACE_VEC_ITERS - 1)
+            : [ inv ] "r"(buffers->inv_mul_src), [ n ] "r"(PACE_VEC_ITERS - 1)
             : "ft0", "ft2", "memory");
 #elif PACE_LANES == 2
         __asm__ volatile(
@@ -569,7 +577,7 @@ static inline void pace_softmax_apply_inv_denom(
             "frep.o  %[n], 1, 0, 0\n\t"
             "vfmul.s  ft2, ft3, ft0\n\t"
             :
-            : [inv] "r"(buffers->inv_mul_src), [n] "r"(PACE_VEC_ITERS - 1)
+            : [ inv ] "r"(buffers->inv_mul_src), [ n ] "r"(PACE_VEC_ITERS - 1)
             : "ft0", "ft2", "memory");
 #else
         __asm__ volatile(
@@ -577,7 +585,7 @@ static inline void pace_softmax_apply_inv_denom(
             "frep.o  %[n], 1, 0, 0\n\t"
             "vfmul.s  ft2, ft3, ft0\n\t"
             :
-            : [inv] "r"(buffers->inv_mul_src), [n] "r"(PACE_VEC_ITERS - 1)
+            : [ inv ] "r"(buffers->inv_mul_src), [ n ] "r"(PACE_VEC_ITERS - 1)
             : "ft0", "ft2", "memory");
 #endif
         buffers->inv_mul_src += PACE_LANES;
@@ -588,8 +596,7 @@ static inline void pace_softmax_apply_inv_denom(
 }
 
 static inline void pace_softmax_compute_output_stage(
-    const pace_softmax_work_t *work,
-    pace_softmax_buffers_t *buffers) {
+    const pace_softmax_work_t *work, pace_softmax_buffers_t *buffers) {
     if (!work->core_active || work->row_count == 0) {
         return;
     }
@@ -600,9 +607,9 @@ static inline void pace_softmax_compute_output_stage(
 
 static inline void pace_softmax_check(void) {
     if (snrt_cluster_core_idx() == 0) {
-        int errors = pace_softmax_check_output((raw_data_t *)&ofmap[0][0],
-                                               (raw_data_t *)&golden[0][0],
-                                               OUTPUTS_LEN);
+        int errors =
+            pace_softmax_check_output((raw_data_t *)&ofmap[0][0],
+                                      (raw_data_t *)&golden[0][0], OUTPUTS_LEN);
         printf("attn_oup_errors = %d\n", errors);
     }
 }
