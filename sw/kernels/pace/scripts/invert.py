@@ -16,128 +16,212 @@ for _path in (str(_REPO_ROOT), str(_PACE_SCRIPTS_DIR)):
         sys.path.insert(0, _path)
 
 try:
-    from snitch.pace.scripts.golden import *
-    from snitch.pace.scripts.pwpa import *
+    from snitch.pace.scripts.datatype import PaceDataTypeHelper
+    from snitch.pace.scripts.evaluation import PacePWPAPrecision
+    from snitch.pace.scripts.execution import PacePWPAExecutionLog, PacePWPAModel
+    from snitch.pace.scripts.fit import PacePWPAFit
+    from snitch.pace.scripts.golden import PaceActivationRegistry
+    from snitch.pace.scripts.partition import PacePartition
 except ModuleNotFoundError:
-    from golden import *
-    from pwpa import *
-
-_FMT = {
-    "FP32": dict(
-        exp_bits=8, frac_bits=23, bias=127, storage=np.float32, uint=np.uint32
-    ),
-    "FP16": dict(
-        exp_bits=5, frac_bits=10, bias=15, storage=np.float16, uint=np.uint16
-    ),
-    "BFP16": dict(
-        exp_bits=8, frac_bits=7, bias=127, storage=np.float32, uint=np.uint16
-    ),
-}
+    from datatype import PaceDataTypeHelper
+    from evaluation import PacePWPAPrecision
+    from execution import PacePWPAExecutionLog, PacePWPAModel
+    from fit import PacePWPAFit
+    from golden import PaceActivationRegistry
+    from partition import PacePartition
 
 
-def _view_bits(x, storage, uint):
-    a = np.asarray(x, dtype=storage)
-    if storage == np.float32 and uint == np.uint16:
-        return ((a.view(np.uint32) >> 16) & 0xffff).astype(np.uint16)
-    return a.view(uint)
+class PaceInverseNormalFloatFormat:
+    """Normal-number decomposition used by inverse/sqrt/rsqrt preprocessing."""
+
+    def __init__(self, precision):
+        self.datatype = PaceDataTypeHelper(precision)
+
+    @property
+    def exponent_bits(self):
+        return self.datatype.exponent_bits
+
+    @property
+    def fraction_bits(self):
+        return self.datatype.fraction_bits
+
+    @property
+    def exponent_bias(self):
+        return self.datatype.exponent_bias
+
+    @property
+    def storage_type(self):
+        return self.datatype.storage_type
+
+    def decompose(self, values):
+        raw = self.datatype.view_bits(values)
+        exp_bits = self.exponent_bits
+        frac_bits = self.fraction_bits
+        sign = (raw >> (exp_bits + frac_bits)) & 0x1
+        exp = (raw >> frac_bits) & ((1 << exp_bits) - 1)
+        frac = raw & ((1 << frac_bits) - 1)
+
+        if np.any(exp == 0) or np.any(exp == (1 << exp_bits) - 1):
+            raise ValueError("Input must be normal & finite")
+
+        exponent = exp.astype(np.int64) - self.exponent_bias
+        mantissa = 1.0 + frac.astype(np.float64) / (1 << frac_bits)
+        mantissa = np.asarray(mantissa, dtype=self.storage_type)
+        return sign, exponent, mantissa
+
+    def compose(self, values, exponent):
+        values = np.asarray(values, dtype=np.float64)
+        exponent = np.asarray(exponent, dtype=np.int64)
+        return np.ldexp(values, exponent)
 
 
-def decompose_normal(x, prec=None):
-    """Return (sign, e_unbiased, mant) with mant in [1,2). Assert normal & finite."""
-    p = _FMT[prec]
-    storage, uint = p["storage"], p["uint"]
-    eb, fb, bias = p["exp_bits"], p["frac_bits"], p["bias"]
+class PaceInversePreprocessor:
+    def __init__(self, precision):
+        self.precision = precision
+        self.normal_format = PaceInverseNormalFloatFormat(precision)
 
-    u = _view_bits(x, storage, uint)
-    sign = (u >> (eb + fb)) & 0x1
-    exp = (u >> fb) & ((1 << eb) - 1)
-    frac = u & ((1 << fb) - 1)
-
-    if np.any(exp == 0) or np.any(exp == (1 << eb) - 1):
-        raise ValueError("Input must be normal & finite")
-
-    e_unb = exp.astype(np.int64) - bias
-    mant = 1.0 + frac.astype(np.float64) / (1 << fb)
-
-    mant = np.asarray(mant, dtype=storage)
-
-    return sign, e_unb, mant
+    def preprocess(self, x):
+        raise NotImplementedError
 
 
-def compose_normal(val, k):
-    """Multiply 'val' by 2**k exactly using ldexp in float64, then return float64."""
-    val = np.asarray(val, dtype=np.float64)
-    k = np.asarray(k, dtype=np.int64)
-    return np.ldexp(val, k)
+class PaceReciprocalPreprocessor(PaceInversePreprocessor):
+    def preprocess(self, x):
+        sign, exp, mant = self.normal_format.decompose(x)
+        return sign, exp, mant
 
 
-def invert_preprocess(x, prec=None):
-    sign, exp, mant = decompose_normal(x, prec=prec)
-    return sign, exp, mant
+class PaceSqrtPreprocessor(PaceInversePreprocessor):
+    def preprocess(self, x):
+        sign, exp, mant = self.normal_format.decompose(x)
+        mant = np.where(exp & 1, mant * 2, mant)
+        exp = np.where(exp & 1, exp - 1, exp)
+        return sign, -(exp // 2), mant
 
 
-def sqrt_preprocess(x, prec=None):
-    sign, exp, mant = decompose_normal(x, prec=prec)
-    mant = np.where(exp & 1, mant * 2, mant)
-    exp = np.where(exp & 1, exp - 1, exp)
-    return sign, -(exp // 2), mant
+class PaceRsqrtPreprocessor(PaceInversePreprocessor):
+    def preprocess(self, x):
+        sign, exp, mant = self.normal_format.decompose(x)
+        mant = np.where(exp & 1, mant * 2, mant)
+        exp = np.where(exp & 1, exp - 1, exp)
+        return sign, (exp // 2), mant
 
 
-def rsqrt_preprocess(x, prec=None):
-    sign, exp, mant = decompose_normal(x, prec=prec)
-    mant = np.where(exp & 1, mant * 2, mant)
-    exp = np.where(exp & 1, exp - 1, exp)
-    return sign, (exp // 2), mant
+class PaceInversePreprocessRegistry:
+    PREPROCESSORS = {
+        "inv": PaceReciprocalPreprocessor,
+        "sqrt": PaceSqrtPreprocessor,
+        "rsqrt": PaceRsqrtPreprocessor,
+    }
+
+    @classmethod
+    def create(cls, fn_name, precision):
+        if fn_name not in cls.PREPROCESSORS:
+            raise ValueError(f"Unsupported inverse/sqrt function: {fn_name}")
+        return cls.PREPROCESSORS[fn_name](precision)
 
 
-PRE_PROCESS = {
-    "inv": invert_preprocess,
-    "sqrt": sqrt_preprocess,
-    "rsqrt": rsqrt_preprocess
-}
+class PaceEpsilonBypass:
+    def __init__(self, eps, precision):
+        self.eps = eps
+        self.precision = precision
+        self.datatype = PaceDataTypeHelper(precision)
+
+    def check(self, x):
+        numpy_prec = self.datatype.storage_type
+        x_prec = (
+            PacePWPAPrecision.quantize(x, self.precision)
+            if PacePWPAPrecision.is_bf16(self.precision)
+            else x.astype(numpy_prec)
+        )
+        eps_prec = numpy_prec(self.eps)
+        return np.abs(x_prec) < eps_prec
 
 
-def invert_sqrt_postprocess(y, sign, exp):
-    y = compose_normal(y, -exp)
-    return np.where(sign == 1, -y, y)
+class PaceInverseSqrtPostprocessor:
+    def __init__(self, precision, eps_const=None):
+        self.precision = precision
+        self.eps_const = eps_const
+        self.normal_format = PaceInverseNormalFloatFormat(precision)
+
+    def compose(self, y, sign, exp):
+        y = self.normal_format.compose(y, -exp)
+        return np.where(sign == 1, -y, y)
+
+    def apply_epsilon(self, bypass, y):
+        return np.where(
+            bypass,
+            np.where(y > 0, self.eps_const, -self.eps_const),
+            y
+        )
+
+    def quantize_output(self, y):
+        if PacePWPAPrecision.is_bf16(self.precision):
+            return PacePWPAPrecision.quantize(y, self.precision)
+        return y
 
 
-def eps_check(x: np.ndarray, eps, prec):
-    """When input becomes subnormal, return bypass."""
-    numpy_prec = _FMT[prec]["storage"]
-    x_prec = (
-        quantize_precision(x, prec)
-        if is_bf16_precision(prec)
-        else x.astype(numpy_prec)
-    )
-    eps_prec = numpy_prec(eps)
-    return np.abs(x_prec) < eps_prec
+class PaceInverseSqrtContext:
+    def __init__(self, sign, exp, mant, bypass):
+        self.sign = sign
+        self.exp = exp
+        self.mant = mant
+        self.bypass = bypass
 
 
-def eps_inv(bypass, y, eps_const):
-    y = np.where(
-        bypass,
-        np.where(y > 0, eps_const, -eps_const),
-        y
-    )
-    return y
+class PaceInverseSqrtModel(PacePWPAModel):
+    def __init__(self, fn_name, coeffs, bps, degree, eps=1e-6, eps_const=0.0, prec=None):
+        PacePWPAModel.__init__(
+            self,
+            func=PaceActivationRegistry.get(fn_name),
+            degree=degree,
+            parts=len(bps) - 1,
+            precision=(
+                prec if PacePWPAPrecision.is_bf16(prec)
+                else PaceDataTypeHelper(prec).storage_type
+            ),
+        )
+        self.name = fn_name
+        self.fit_data = PacePWPAFit(
+            raw_bps=bps,
+            bst_bps=PacePartition.build_bst_breakpoints(bps),
+            coeffs=coeffs,
+        )
+        self.eps = eps
+        self.eps_const = eps_const
+        self.prec = prec
+        self.preprocessor = PaceInversePreprocessRegistry.create(fn_name, prec)
+        self.epsilon = PaceEpsilonBypass(eps, prec)
+        self.postprocessor = PaceInverseSqrtPostprocessor(prec, eps_const)
+
+    def preprocess(self, x):
+        x = np.asarray(x)
+        bypass = self.epsilon.check(x)
+        sign, exp, mant = self.preprocessor.preprocess(x)
+        return mant, PaceInverseSqrtContext(sign, exp, mant, bypass), PacePWPAExecutionLog()
+
+    def postprocess(self, y, context):
+        y = self.postprocessor.compose(y, context.sign, context.exp)
+        y = self.postprocessor.apply_epsilon(context.bypass, y)
+        return self.postprocessor.quantize_output(y), PacePWPAExecutionLog()
+
+    def evaluate_input(self, x):
+        return self.evaluate(x, self.fit_data).output
+
+    def __str__(self):
+        return self.name
 
 
-def invert_sqrt(
-    x, coeffs, bps, degree, eps=1e-6, eps_const=0.0, fn_name=None, prec=None
-):
-    x = np.asarray(x)
-    np_prec = prec if is_bf16_precision(prec) else _FMT[prec]["storage"]
-    bypass = eps_check(x, eps, prec)
-    fn_preprocess = PRE_PROCESS[fn_name]
-    sign, exp, mant = fn_preprocess(x, prec=prec)
-    bst_bps = build_bst_bps(bps)
-    part_id = compute_part_id_bst(mant, bst_bps, np_prec)
-    y_inv_normal = evaluate_pwpa(
-        mant, coeffs, part_id=part_id, degree=degree, np_prec=np_prec
-    )
-    y = invert_sqrt_postprocess(y_inv_normal, sign, exp)
-    y = eps_inv(bypass, y, eps_const)
-    if is_bf16_precision(prec):
-        y = quantize_precision(y, prec)
-    return y
+class PaceInverseSqrtEvaluator:
+    def __init__(self, fn_name, coeffs, bps, degree, eps=1e-6, eps_const=0.0, prec=None):
+        self.model = PaceInverseSqrtModel(
+            fn_name=fn_name,
+            coeffs=coeffs,
+            bps=bps,
+            degree=degree,
+            eps=eps,
+            eps_const=eps_const,
+            prec=prec,
+        )
+
+    def evaluate(self, x):
+        return self.model.evaluate_input(x)

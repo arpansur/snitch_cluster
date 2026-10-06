@@ -10,12 +10,12 @@ _PACE_SCRIPTS_DIR = Path(__file__).resolve().parents[2] / "scripts"
 if str(_PACE_SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(_PACE_SCRIPTS_DIR))
 
-from verify_common import PaceVerifier
+from verify_common import PaceVerifier  # noqa: E402
 
 
-class SpatzPaceLoopVerifier(PaceVerifier):
+class PaceSpatzPaceLoopVerifier(PaceVerifier):
     pass
 
 
 if __name__ == "__main__":
-    sys.exit(SpatzPaceLoopVerifier().main())
+    sys.exit(PaceSpatzPaceLoopVerifier().main())

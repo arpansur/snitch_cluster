@@ -4,9 +4,10 @@
 //
 // Arpan Suravi Prasad <prasadar@iis.ee.ethz.ch>
 
+#include "snrt.h"
+
 #include "data.h"
 #include "pace_elementwise.h"
-#include "snrt.h"
 
 #ifndef PACE_EXEC_VECTOR
 #define PACE_EXEC_VECTOR 1

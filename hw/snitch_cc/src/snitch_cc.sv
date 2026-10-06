@@ -790,7 +790,7 @@ module snitch_cc
   ///////////
 
   if (IsaCfg.RVV) begin : gen_spatz
-    snitch_spatz_pace #(
+    snitch_spatz #(
       .NrMemPorts         (NumSpatzMemPorts),
       .NumOutstandingLoads(NumSpatzOutstandingLoads),
       .FPUImplementation  (FPUImplementation),

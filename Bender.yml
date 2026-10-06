@@ -171,14 +171,9 @@ sources:
       # Level 1
       - hw/snitch_cc/src/snitch_tracer.sv
       - hw/snitch_cc/src/snitch_ssr_subsystem.sv
-  - target: not(spatz_pace)
-    files:
+  - files:
       # Level 2
       - hw/snitch_cc/src/snitch_spatz.sv
-  - target: spatz_pace
-    files:
-      # Level 2
-      - hw/snitch_cc/src/snitch_spatz_pace.sv
   - files:
       # Level 3
       - hw/snitch_cc/src/snitch_cc.sv
