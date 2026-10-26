@@ -69,6 +69,8 @@ package snitch_pace_pkg;
     endcase
   endfunction
 
+  // The MSB is reserved for a future extended mode; only the lower two bits
+  // currently select the PACE operation.
   function automatic logic [2:0] pace_mode_bits(input logic [31:0] instr);
     if (is_pace_instr(instr)) return instr[14:12];
     if (is_vpace_instr(instr)) return instr[27:25];
@@ -85,11 +87,12 @@ package snitch_pace_pkg;
   endfunction
 
   function automatic pace_mode_t pace_fpu_mode(
-    input pace_mode_t core_mode, input logic pace_valid, input logic [2:0] mode);
+    input pace_mode_t core_mode, input logic pace_valid, input logic [1:0] mode);
     pace_fpu_mode = '0;
     pace_fpu_mode.degree = core_mode.degree;
     pace_fpu_mode.enable = pace_valid;
-    pace_fpu_mode.extend = pace_valid & mode[2];
+    // mode[2] is reserved for a future extended mode.
+    pace_fpu_mode.extend = 1'b0;
   endfunction
 
 endpackage
