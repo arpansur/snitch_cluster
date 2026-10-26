@@ -435,8 +435,8 @@ module snitch_cluster
     default: '0
   };
   localparam int unsigned WideSlaveIdxBits = cc_pkg::idx_width(NrWideSlaves);
-  localparam int unsigned PaceParamCount = PaceEnable ?
-    ((PaceDegree + 1) * PaceParts + PaceParts - 1 + 2 * PaceEps) : 0;
+  localparam int unsigned PaceParamCount =
+    snitch_pace_pkg::pace_param_count(snitch_pace_pkg::pace_cfg_t'(PaceCfg));
 
 
   function automatic int unsigned get_hive_size(int unsigned current_hive);

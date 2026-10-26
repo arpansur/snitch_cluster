@@ -17,4 +17,9 @@ package snitch_pace_pkg;
     logic [31:0] pipe_dist;
   } pace_cfg_t;
 
+  function automatic int unsigned pace_param_count(pace_cfg_t cfg);
+    return cfg.enable ?
+      ((cfg.degree + 1) * cfg.parts + cfg.parts - 1 + 2 * cfg.eps) : 0;
+  endfunction
+
 endpackage
