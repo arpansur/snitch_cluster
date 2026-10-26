@@ -117,8 +117,5 @@ $(foreach app,$(SN_APPS), \
 	$(eval include $(app)/app.mk) \
 )
 
-.PHONY: pwpa clean-pwpa
-pwpa: pace_elementwise
-clean-pwpa: clean-pace_elementwise
 
 endif
