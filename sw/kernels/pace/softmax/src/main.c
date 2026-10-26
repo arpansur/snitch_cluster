@@ -4,6 +4,12 @@
 //
 // Arpan Suravi Prasad <prasadar@iis.ee.ethz.ch>
 
+#include "snrt.h"
+
+#ifndef SNRT_SUPPORTS_FREP
+int main(void) { return 0; }
+#else
+
 #include "pace_softmax.h"
 
 int main() {
@@ -40,3 +46,5 @@ int main() {
 
     return 0;
 }
+
+#endif

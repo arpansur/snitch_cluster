@@ -17,6 +17,10 @@
 #define PACE_EXEC_SCALAR 0
 #endif
 
+#if PACE_EXEC_VECTOR && !defined(SNRT_SUPPORTS_FREP)
+int main(void) { return 0; }
+#else
+
 #if PACE_EXEC_VECTOR == PACE_EXEC_SCALAR
 #error "Select exactly one elementwise execution mode"
 #endif
@@ -180,3 +184,5 @@ int main() {
 
     return 0;
 }
+
+#endif

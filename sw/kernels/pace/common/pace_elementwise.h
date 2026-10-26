@@ -120,6 +120,7 @@ static inline void pace_configure_fmode(void) {
 #define PACE_SCALAR_OP(rd, rs1) PACE_SCALAR rd ", " rs1 "\n\t"
 #define PACE_VECTOR_OP(rd, rs1, rs2) PACE_VECTOR rd ", " rs1 ", " rs2 "\n\t"
 
+#ifdef SNRT_SUPPORTS_FREP
 #define PACE_FREP_VPACE(repeat_count, instruction)                  \
     __asm__ volatile("frep.o  %[n], 1, 0, 0\n\t" instruction "\n\t" \
                      :                                              \
@@ -224,5 +225,6 @@ static inline void pace_vector_ssr(uint32_t repeat_count) {
 #endif
 
 #undef PACE_FREP_VPACE
+#endif
 
 #endif
