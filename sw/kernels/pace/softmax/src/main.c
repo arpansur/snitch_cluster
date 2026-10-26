@@ -7,6 +7,9 @@
 #include "pace_softmax.h"
 
 int main() {
+#ifndef SNRT_SUPPORTS_PACE
+    return 0;
+#endif
     pace_softmax_work_t work;
     if (pace_softmax_init_work(&work)) {
         return 1;

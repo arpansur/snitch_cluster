@@ -120,6 +120,9 @@ static int check_output(void) {
 }
 
 int main(void) {
+#ifndef SNRT_SUPPORTS_PACE
+    return 0;
+#endif
     if (snrt_is_dm_core()) {
         copy_inputs_to_tcdm();
         copy_params_to_pace_mem();

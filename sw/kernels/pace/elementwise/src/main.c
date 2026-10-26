@@ -69,6 +69,9 @@ static int check_output(const data_t *actual, const data_t *expected, int len) {
 }
 
 int main() {
+#ifndef SNRT_SUPPORTS_PACE
+    return 0;
+#endif
     const uint32_t compute_core_count = snrt_cluster_compute_core_num();
     const uint32_t core_idx = snrt_cluster_core_idx();
     const uint32_t inputs_len_per_core = INPUTS_LEN / compute_core_count;

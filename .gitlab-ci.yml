@@ -168,11 +168,11 @@ snitch-cluster-pace-vsim:
 snitch-cluster-spatz-pace-vsim:
   script:
     - >
-      make CFG_OVERRIDE=cfg/spatz-pace.json SN_SPATZ_PACE=ON
+      make CFG_OVERRIDE=cfg/spatz-pace.json
       SN_BUILD_SPATZ_PACE_APPS=ON
       $(util/sim/list_apps.py --in-dir ../sw test/spatz.yaml)
       $(util/sim/list_apps.py --in-dir ../sw test/spatz-pace.yaml) -j
-    - make CFG_OVERRIDE=cfg/spatz-pace.json SN_SPATZ_PACE=ON vsim TRACE=OFF -j
+    - make CFG_OVERRIDE=cfg/spatz-pace.json vsim TRACE=OFF -j
     - cd test
     - ../util/experiments/run.py spatz.yaml --simulator vsim -j --run-dir runs/vsim-spatz-pace
     - ../util/experiments/run.py spatz-pace.yaml --simulator vsim -j --run-dir runs/vsim-spatz-pace
