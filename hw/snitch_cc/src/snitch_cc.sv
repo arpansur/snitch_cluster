@@ -690,16 +690,8 @@ module snitch_cc
       .RegisterSequencer    (RegisterSequencer),
       .RegisterFpuReq       (RegisterFPUIn),
       .RegisterFpuRsp       (RegisterFPUOut),
-      .EnableDca            (EnableDca),
-      .pace_cfg_t           (snitch_pace_pkg::pace_cfg_t),
       .PaceCfg              (PaceCfg),
-      .PaceDegree           (PaceCfg.degree),
-      .PaceParts            (PaceCfg.parts),
-      .PaceEps              (PaceCfg.eps),
-      .PaceDataWidth        (PaceCfg.data_width),
-      .PaceParamWidth       (PaceCfg.param_width),
-      .PaceFmtConfig        (PaceCfg.fmt_config),
-      .PacePipeDist         (PaceCfg.pipe_dist)
+      .EnableDca            (EnableDca)
     ) i_snitch_fp_ss (
       .clk_i,
       .rst_i                  (~rst_ni | (~rst_fp_ss_ni)),

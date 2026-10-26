@@ -83,7 +83,7 @@ module axi_pace_mem #(
   `FF(mem_rvalid, mem_we & mem_req & mem_gnt, 1'b0, clk_i, rst_ni)
 
 
-  `ASSERT_INIT(PACE_EPS_VALUE, (PaceEps == 0) | (PaceEps == 1),
+  `ASSERT_INIT(PACE_EPS_VALUE, (PaceCfg.eps == 0) | (PaceCfg.eps == 1),
                "Only PaceEps=0 or 1 is supported it is an enable")
 
   localparam int unsigned TotalWords =

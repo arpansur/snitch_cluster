@@ -137,10 +137,10 @@ class PaceNativePrecisionFormat(PacePrecisionFormat):
         return data_utils.numpy_type_from_precision_t(self.prec)
 
     def c_type(self):
-        return data_utils.ctype_from_precision_t(self.prec)
+        return data_utils.ctype_from_fp_precision_t(self.prec)
 
     def hex_c_type(self):
-        return data_utils.hex_ctype_from_precision_t(_integer_precision_t(self.prec))
+        return data_utils.ctype_from_int_precision_t(_integer_precision_t(self.prec))
 
     def storage_bits(self):
         return 8 * _integer_precision_t(self.prec)

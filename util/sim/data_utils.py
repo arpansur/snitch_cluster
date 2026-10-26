@@ -7,39 +7,14 @@
 
 
 import argparse
-import json
 import pathlib
 import struct
 from datetime import datetime
 import numpy as np
-
-try:
-    import json5
-except ModuleNotFoundError:
-    json5 = None
-
-try:
-    import torch
-except ModuleNotFoundError:
-    torch = None
-
-try:
-    import pyflexfloat as ff
-except ModuleNotFoundError:
-    ff = None
-
-try:
-    import humanize
-except ModuleNotFoundError:
-    humanize = None
-
-
-def _naturalsize(size, binary=True):
-    if humanize is not None:
-        return humanize.naturalsize(size, binary=binary)
-    unit = 'KiB' if binary else 'kB'
-    base = 1024 if binary else 1000
-    return f'{size / base:.1f} {unit}'
+import json5
+import torch
+import pyflexfloat as ff
+import humanize
 
 
 # Maximum available size in TCDM (in bytes)
@@ -102,8 +77,6 @@ def torch_type_from_precision_t(prec):
         prec: A value of type `precision_t`. Accepts both enum strings
             (e.g. "FP64") and integer enumeration values (e.g. 8).
     """
-    if torch is None:
-        raise ModuleNotFoundError("torch is required for torch_type_from_precision_t")
     precision_t_to_torch_type_map = {
         8: torch.float64,
         4: torch.float32,
@@ -132,7 +105,7 @@ def numpy_type_from_precision_t(prec):
 
 
 # Returns the C type representing a floating-point value of the specified precision
-def ctype_from_precision_t(prec):
+def ctype_from_fp_precision_t(prec):
     """Convert `precision_t` type to a C type string.
 
     Args:
@@ -148,7 +121,7 @@ def ctype_from_precision_t(prec):
     return precision_t_to_ctype_map[_integer_precision_t(prec)]
 
 
-def hex_ctype_from_precision_t(prec):
+def ctype_from_int_precision_t(prec):
     """Convert `precision_t` type to the matching unsigned integer C type."""
     precision_t_to_hex_ctype_map = {
         8: 'uint64_t',
@@ -239,8 +212,6 @@ def generate_random_array(size, prec='FP64', seed=None):
     rand = np.random.default_rng(seed=seed).random(size=size, dtype=np.float64) * 2 - 1
     # Generate FlexFloat array for 8b floats, casted from 16b Numpy array
     if _integer_precision_t(prec) == 1:
-        if ff is None:
-            raise ModuleNotFoundError("pyflexfloat is required for FP8 data generation")
         return ff.array(rand.astype(np.float16), ff_desc_from_precision_t(prec))
     else:
         return rand.astype(numpy_type_from_precision_t(prec))
@@ -285,10 +256,10 @@ def _alias_dtype(dtype):
     return ' '.join(tokens)
 
 
-def format_array_declaration(dtype, uid, shape, alignment=None, section=None, hex_format=False):
+def format_array_declaration(dtype, uid, shape, alignment=None, section=None, integer_format=False):
     attributes = _variable_attributes(alignment, section)
-    if hex_format:
-        dtype = hex_ctype_from_precision_t(type_to_precision_t(dtype))
+    if integer_format:
+        dtype = ctype_from_int_precision_t(type_to_precision_t(dtype))
     s = f'{_alias_dtype(dtype)} {uid}'
     for dim in shape:
         s += f'[{dim}]'
@@ -301,13 +272,13 @@ def format_array_declaration(dtype, uid, shape, alignment=None, section=None, he
 
 # In the case of dtype __fp8, array field expects a dictionary of
 # sign, exponent and mantissa arrays
-def format_array_definition(dtype, uid, array, alignment=None, section=None, hex_format=False):
+def format_array_definition(dtype, uid, array, alignment=None, section=None, integer_format=False):
     # Definition starts with the declaration stripped off of the terminating semicolon
     s = format_array_declaration(
-        dtype, uid, array.shape, alignment, section, hex_format=hex_format
+        dtype, uid, array.shape, alignment, section, integer_format=integer_format
     )[:-1]
     s += ' = '
-    s += format_array_initializer(dtype, array, hex_format=hex_format)
+    s += format_array_initializer(dtype, array, integer_format=integer_format)
     s += ';'
     return s
 
@@ -349,6 +320,8 @@ def float_to_hex(array, prec):
         return f"0x{bits:04X}"
 
     if prec == "bfloat16":
+        # NumPy has no native bfloat16 dtype, so emulate it through FP32 and
+        # keep the upper 16 bits (the bfloat16 sign, exponent, and mantissa).
         bits = np.asarray(array, np.float32).view(np.uint32).item()
         return f"0x{(bits >> 16) & 0xFFFF:04X}"
 
@@ -364,15 +337,18 @@ def float_to_hex(array, prec):
     raise ValueError(f"Unsupported precision for hex formatting: {prec}")
 
 
-def format_array_initializer(dtype, array, hex_format=False):
+def format_array_initializer(dtype, array, integer_format=False):
     s = '{\n'
     array = flatten(array)
-    if hex_format:
+    if integer_format:
+        if dtype == '__fp8':
+            s += ''.join(f'\t0x{int(el.bits()) & 0xFF:02X},\n' for el in array)
+            s += '}'
+            return s
         ctype_to_prec = {
             'double': np.float64,
             'float': np.float32,
             '__fp16': np.float16,
-            '__fp8': "bfloat16",
             'uint64_t': np.uint64,
             'uint32_t': np.uint32,
             'uint16_t': np.uint16,
@@ -458,8 +434,6 @@ def from_buffer(byte_array, ctype='uint32_t'):
         dtype = NP_DTYPE_FROM_CTYPE[ctype]
         return np.frombuffer(byte_array, dtype=dtype)
     elif ctype == '__fp8':
-        if ff is None:
-            raise ModuleNotFoundError("pyflexfloat is required for FP8 data parsing")
         return ff.frombuffer(byte_array, 'e5m2')
     else:
         raise ValueError(f"Unsupported ctype for from_buffer(): {ctype}")
@@ -523,13 +497,7 @@ class DataGen:
         # Load param config file
         with args.cfg.open() as f:
             config = f.read()
-            if json5 is not None:
-                param = json5.loads(config)
-            else:
-                param = json.loads('\n'.join(
-                    line for line in config.splitlines()
-                    if not line.lstrip().startswith('//')
-                ))
+            param = json5.loads(config)
         param['section'] = args.section
 
         # Emit header file
@@ -548,7 +516,7 @@ def validate_tcdm_footprint(size, silent=False):
         silent: If True, will not print the size to stdout.
     """
     assert size < TCDM_HEAP_SIZE, \
-        f'Total heap space required {_naturalsize(size, binary=True)} exceeds ' \
-        f'limit of {_naturalsize(TCDM_HEAP_SIZE, binary=True)}'
+        f'Total heap space required {humanize.naturalsize(size, binary=True)} exceeds ' \
+        f'limit of {humanize.naturalsize(TCDM_HEAP_SIZE, binary=True)}'
     if not silent:
         print(f'Total heap space required {humanize.naturalsize(size, binary=True)}')

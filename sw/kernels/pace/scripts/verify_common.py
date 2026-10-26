@@ -16,7 +16,7 @@ if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 
 try:
-    from snitch.util.sim.data_utils import ctype_from_precision_t
+    from snitch.util.sim.data_utils import ctype_from_fp_precision_t
     from snitch.util.sim.verif_utils import Verifier
 except ModuleNotFoundError:
     import util.sim.data_utils as util_sim_data_utils
@@ -33,7 +33,7 @@ except ModuleNotFoundError:
     sys.modules.setdefault("snitch.util.sim", util_sim)
     sys.modules.setdefault("snitch.util.sim.Elf", util_sim_elf)
 
-    from util.sim.data_utils import ctype_from_precision_t
+    from util.sim.data_utils import ctype_from_fp_precision_t
     from util.sim.verif_utils import Verifier
 
 
@@ -93,7 +93,7 @@ def detect_precision_from_defines(defines):
 def ctype_from_pace_precision(prec):
     if str(prec).upper() in {"BF16", "BFP16"}:
         return "uint16_t"
-    return ctype_from_precision_t(prec)
+    return ctype_from_fp_precision_t(prec)
 
 
 def dtype_suffix_from_defines(defines):

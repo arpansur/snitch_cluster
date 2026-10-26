@@ -9,10 +9,7 @@ import argparse
 import pathlib
 import numpy as np
 import sys
-try:
-    import torch
-except ModuleNotFoundError:
-    torch = None
+import torch
 
 _REPO_ROOT = pathlib.Path(__file__).resolve().parents[4]
 _PACE_SCRIPTS_DIR = pathlib.Path(__file__).resolve().parent
@@ -35,8 +32,7 @@ except ModuleNotFoundError:
         format_array_definition,
     )
 
-if torch is not None:
-    torch.manual_seed(42)
+torch.manual_seed(42)
 try:
     from snitch.pace.scripts.config import PaceConfig
     from snitch.pace.scripts.config_loader import PaceJsonConfigLoader
@@ -1029,7 +1025,7 @@ class PaceSoftmaxKernel:
             raise ValueError("num_cores must be at least 1")
         self.lane_count = self.hardware.lanes
         self.hex_ctype = self.config.hex_c_type
-        self.param_hex_ctype = data_utils.hex_ctype_from_precision_t(
+        self.param_hex_ctype = data_utils.ctype_from_int_precision_t(
             _integer_precision_t("FP32")
         )
         self.xmin = self.config.x_min
@@ -1094,31 +1090,31 @@ class PaceSoftmaxKernel:
         data_str += [
             format_array_definition(
                 self.param_hex_ctype, exp_params_uid, exp_params, alignment=64,
-                hex_format=True
+                integer_format=True
             )
         ]
         data_str += [
             format_array_definition(
                 self.param_hex_ctype, inv_params_uid, inv_params, alignment=64,
-                hex_format=True
+                integer_format=True
             )
         ]
         data_str += [
             format_array_definition(
                 self.ctype, ifmap_uid, ifmap_data, alignment=4096,
-                hex_format=True
+                integer_format=True
             )
         ]
         data_str += [
             format_array_definition(
                 self.ctype, ofmap_uid, ofmap_init, alignment=4096,
-                hex_format=True
+                integer_format=True
             )
         ]
         data_str += [
             format_array_definition(
                 self.ctype, golden_uid, golden_data, alignment=4096,
-                hex_format=True
+                integer_format=True
             )
         ]
         data_str += ["#endif"]

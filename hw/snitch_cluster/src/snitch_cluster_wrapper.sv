@@ -277,7 +277,7 @@ module snitch_cluster_wrapper
     .AliasRegionBase          (AliasRegionBase),
     .EnableDca                (EnableDca),
     .DcaDataWidth             (DcaDataWidth),
-    .pace_cfg_t(pace_cfg_t),
+    .pace_cfg_t(snitch_pace_pkg::pace_cfg_t),
     .PaceCfg(PaceCfg),
     .PaceEnable(PaceEnable),
     .PaceMemorySize(PaceMemorySize),

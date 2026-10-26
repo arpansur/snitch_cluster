@@ -5,16 +5,8 @@
 
 """PACE JSON/JSON5 configuration loading."""
 
-import json
+import json5
 from pathlib import Path
-
-try:
-    import json5
-
-    _HAS_JSON5 = True
-except ModuleNotFoundError:
-    json5 = None
-    _HAS_JSON5 = False
 
 
 class PaceJsonConfigLoader:
@@ -23,9 +15,4 @@ class PaceJsonConfigLoader:
     @staticmethod
     def load(path):
         text = Path(path).read_text()
-        if _HAS_JSON5:
-            return json5.loads(text)
-        filtered = "\n".join(
-            line for line in text.splitlines() if not line.lstrip().startswith("//")
-        )
-        return json.loads(filtered)
+        return json5.loads(text)

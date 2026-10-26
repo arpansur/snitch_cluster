@@ -498,26 +498,26 @@ class PaceElementwiseKernel:
         data_str += [
             format_array_definition(
                 self.param_hex_ctype, params_uid, params, alignment=64,
-                hex_format=True
+                integer_format=True
             )
         ]
         # Input definitions
         data_str += [
             format_array_definition(
-                self.ctype, ifmap_uid, ifmap, alignment=4096, hex_format=True
+                self.ctype, ifmap_uid, ifmap, alignment=4096, integer_format=True
             )
         ]
         # Output storage populated by the kernel at runtime
         data_str += [
             format_array_definition(
                 self.ctype, ofmap_uid, ofmap_init, alignment=4096,
-                hex_format=True
+                integer_format=True
             )
         ]
         # Golden results for BIST
         data_str += [
             format_array_definition(
-                self.ctype, "golden", golden, alignment=4096, hex_format=True
+                self.ctype, "golden", golden, alignment=4096, integer_format=True
             )
         ]
         data_str += ["#endif"]

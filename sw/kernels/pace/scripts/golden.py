@@ -9,10 +9,7 @@
 
 import numpy as np
 
-try:
-    import torch
-except ModuleNotFoundError:
-    torch = None
+import torch
 
 
 class PaceActivationFunction:
@@ -30,8 +27,6 @@ class PaceActivationFunction:
         return np.asarray(x)
 
     def torch_tensor(self, x):
-        if torch is None:
-            return None
         return torch.from_numpy(self.as_numpy(x))
 
     def __str__(self):

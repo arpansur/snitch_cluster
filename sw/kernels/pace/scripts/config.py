@@ -160,7 +160,7 @@ class PaceConfig:
 
     @property
     def param_hex_c_type(self):
-        return data_utils.hex_ctype_from_precision_t(
+        return data_utils.ctype_from_int_precision_t(
             _integer_precision_t(self.param_precision)
         )
 

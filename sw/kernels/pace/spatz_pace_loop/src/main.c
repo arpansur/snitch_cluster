@@ -9,6 +9,10 @@
 #include "pace_elementwise.h"
 #include "snrt.h"
 
+#ifndef SNRT_SUPPORTS_VECTOR
+int main(void) { return 0; }
+#else
+
 #if PACE_DTYPE_FP32
 #define SPATZ_VSETVLI "vsetvli %0, %1, e32, m8, ta, ma"
 #define SPATZ_VLE_V0 "vle32.v v0, (%0)"
@@ -149,3 +153,5 @@ int main(void) {
 
     return 0;
 }
+
+#endif

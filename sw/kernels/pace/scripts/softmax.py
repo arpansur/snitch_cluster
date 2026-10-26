@@ -10,10 +10,7 @@ import sys
 from pathlib import Path
 
 import numpy as np
-try:
-    import torch
-except ModuleNotFoundError:
-    torch = None
+import torch
 
 _REPO_ROOT = Path(__file__).resolve().parents[4]
 _PACE_SCRIPTS_DIR = Path(__file__).resolve().parent
@@ -36,8 +33,7 @@ except ModuleNotFoundError:
     from invert import PaceInverseSqrtEvaluator
     from partition import PacePartitionGenerator
 
-if torch is not None:
-    torch.manual_seed(42)
+torch.manual_seed(42)
 np.random.seed(42)
 
 
@@ -132,13 +128,6 @@ class PaceSoftmaxGoldenReference:
     @staticmethod
     def compute_softmax(attn, out_dtype=np.float32):
         attn_np = np.asarray(attn, dtype=np.float32)
-        if torch is None:
-            row_max = np.max(attn_np, axis=1, keepdims=True)
-            shifted = attn_np - row_max
-            exp_shifted = np.exp(shifted)
-            denom = np.sum(exp_shifted, axis=1, keepdims=True)
-            return (exp_shifted / denom).astype(out_dtype)
-
         attn_t = torch.tensor(attn_np, dtype=torch.float32)
         softmax_t = torch.softmax(attn_t, dim=1)
         return softmax_t.cpu().numpy().astype(out_dtype)
