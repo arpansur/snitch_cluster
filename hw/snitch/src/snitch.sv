@@ -775,21 +775,16 @@ module snitch
       PACE_INV_H,
       PACE_SQRT_H,
       PACE_RSQRT_H: begin
-        if (RVV) begin
-          unsupported_inst = 1'b1;
-        end else if (FpEn && RVF) begin
-          if ((inst_rsp_i.data inside {PACE_PWPA_S, PACE_INV_S, PACE_SQRT_S, PACE_RSQRT_S}) ||
-              ((inst_rsp_i.data inside {PACE_PWPA_H, PACE_INV_H, PACE_SQRT_H, PACE_RSQRT_H}) &&
-               ((Zfh && fcsr_q.fmode.dst == 1'b0) ||
-                (XF16ALT && fcsr_q.fmode.dst == 1'b1)))) begin
-            write_rd = 1'b0;
-            is_acc_inst = 1'b1;
-            acc_req_o.q.addr = FP_SS;
-          end else begin
-            illegal_inst = 1'b1;
-          end
+        if (NativeFpSupport && RVF &&
+            ((inst_rsp_i.data inside {PACE_PWPA_S, PACE_INV_S, PACE_SQRT_S, PACE_RSQRT_S}) ||
+             ((inst_rsp_i.data inside {PACE_PWPA_H, PACE_INV_H, PACE_SQRT_H, PACE_RSQRT_H}) &&
+              ((Zfh && fcsr_q.fmode.dst == 1'b0) ||
+               (XF16ALT && fcsr_q.fmode.dst == 1'b1))))) begin
+          write_rd = 1'b0;
+          is_acc_inst = 1'b1;
+          acc_req_o.q.addr = FP_SS;
         end else begin
-          illegal_inst = 1'b1;
+          unsupported_inst = 1'b1;
         end
       end
       VPACE_PWPA_S,
@@ -800,21 +795,16 @@ module snitch
       VPACE_INV_H,
       VPACE_SQRT_H,
       VPACE_RSQRT_H: begin
-        if (RVV) begin
-          unsupported_inst = 1'b1;
-        end else if (FpEn && RVF && XFVEC) begin
-          if ((inst_rsp_i.data inside {VPACE_PWPA_S, VPACE_INV_S, VPACE_SQRT_S, VPACE_RSQRT_S}) ||
-              ((inst_rsp_i.data inside {VPACE_PWPA_H, VPACE_INV_H, VPACE_SQRT_H, VPACE_RSQRT_H}) &&
-               ((Zfh && fcsr_q.fmode.dst == 1'b0) ||
-                (XF16ALT && fcsr_q.fmode.dst == 1'b1)))) begin
-            write_rd = 1'b0;
-            is_acc_inst = 1'b1;
-            acc_req_o.q.addr = FP_SS;
-          end else begin
-            illegal_inst = 1'b1;
-          end
+        if (NativeFpSupport && RVF && XFVEC &&
+            ((inst_rsp_i.data inside {VPACE_PWPA_S, VPACE_INV_S, VPACE_SQRT_S, VPACE_RSQRT_S}) ||
+             ((inst_rsp_i.data inside {VPACE_PWPA_H, VPACE_INV_H, VPACE_SQRT_H, VPACE_RSQRT_H}) &&
+              ((Zfh && fcsr_q.fmode.dst == 1'b0) ||
+               (XF16ALT && fcsr_q.fmode.dst == 1'b1))))) begin
+          write_rd = 1'b0;
+          is_acc_inst = 1'b1;
+          acc_req_o.q.addr = FP_SS;
         end else begin
-          illegal_inst = 1'b1;
+          unsupported_inst = 1'b1;
         end
       end
       AND: begin
