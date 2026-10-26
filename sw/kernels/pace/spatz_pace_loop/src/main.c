@@ -9,10 +9,6 @@
 #include "pace_elementwise.h"
 #include "snrt.h"
 
-#ifndef PACE_CSR_DEGREE
-#define PACE_CSR_DEGREE PACE_DEGREE
-#endif
-
 #if PACE_DTYPE_FP32
 #define SPATZ_VSETVLI "vsetvli %0, %1, e32, m8, ta, ma"
 #define SPATZ_VLE_V0 "vle32.v v0, (%0)"
@@ -130,7 +126,7 @@ int main(void) {
     snrt_cluster_hw_barrier();
 
     if (snrt_is_compute_core()) {
-        write_pace_csr(PACE_CSR_DEGREE);
+        write_pace_csr(PACE_DEGREE);
         pace_configure_fmode();
     }
     snrt_cluster_hw_barrier();
