@@ -13,6 +13,7 @@
 // Floating Point Subsystem
 module snitch_fp_ss
   import snitch_pkg::*;
+  import snitch_pace_pkg::*;
 #(
   parameter int unsigned AddrWidth = 32,
   parameter int unsigned DataWidth = 32,
@@ -137,91 +138,6 @@ module snitch_fp_ss
     logic     repd;
     acc_req_chan_t req;
   } acc_req_repd_t;
-
-  function automatic logic is_pace_instr(input logic [31:0] instr);
-    unique casez (instr)
-      snitch_riscv_instr::PACE_PWPA_S,
-      snitch_riscv_instr::PACE_INV_S,
-      snitch_riscv_instr::PACE_SQRT_S,
-      snitch_riscv_instr::PACE_RSQRT_S,
-      snitch_riscv_instr::PACE_PWPA_H,
-      snitch_riscv_instr::PACE_INV_H,
-      snitch_riscv_instr::PACE_SQRT_H,
-      snitch_riscv_instr::PACE_RSQRT_H: is_pace_instr = 1'b1;
-      default: is_pace_instr = 1'b0;
-    endcase
-  endfunction
-
-  function automatic logic is_vpace_instr(input logic [31:0] instr);
-    unique casez (instr)
-      snitch_riscv_instr::VPACE_PWPA_S,
-      snitch_riscv_instr::VPACE_INV_S,
-      snitch_riscv_instr::VPACE_SQRT_S,
-      snitch_riscv_instr::VPACE_RSQRT_S,
-      snitch_riscv_instr::VPACE_PWPA_H,
-      snitch_riscv_instr::VPACE_INV_H,
-      snitch_riscv_instr::VPACE_SQRT_H,
-      snitch_riscv_instr::VPACE_RSQRT_H: is_vpace_instr = 1'b1;
-      default: is_vpace_instr = 1'b0;
-    endcase
-  endfunction
-
-  function automatic logic is_pace_single_instr(input logic [31:0] instr);
-    unique casez (instr)
-      snitch_riscv_instr::PACE_PWPA_S,
-      snitch_riscv_instr::PACE_INV_S,
-      snitch_riscv_instr::PACE_SQRT_S,
-      snitch_riscv_instr::PACE_RSQRT_S,
-      snitch_riscv_instr::VPACE_PWPA_S,
-      snitch_riscv_instr::VPACE_INV_S,
-      snitch_riscv_instr::VPACE_SQRT_S,
-      snitch_riscv_instr::VPACE_RSQRT_S: is_pace_single_instr = 1'b1;
-      default: is_pace_single_instr = 1'b0;
-    endcase
-  endfunction
-
-  function automatic logic is_pace_half_instr(input logic [31:0] instr);
-    unique casez (instr)
-      snitch_riscv_instr::PACE_PWPA_H,
-      snitch_riscv_instr::PACE_INV_H,
-      snitch_riscv_instr::PACE_SQRT_H,
-      snitch_riscv_instr::PACE_RSQRT_H,
-      snitch_riscv_instr::VPACE_PWPA_H,
-      snitch_riscv_instr::VPACE_INV_H,
-      snitch_riscv_instr::VPACE_SQRT_H,
-      snitch_riscv_instr::VPACE_RSQRT_H: is_pace_half_instr = 1'b1;
-      default: is_pace_half_instr = 1'b0;
-    endcase
-  endfunction
-
-  function automatic logic [2:0] pace_mode_bits(input logic [31:0] instr);
-    pace_mode_bits = 3'b000;
-    if (is_pace_instr(instr)) begin
-      pace_mode_bits = instr[14:12];
-    end else if (is_vpace_instr(instr)) begin
-      pace_mode_bits = instr[27:25];
-    end
-  endfunction
-
-  function automatic fpnew_pkg::operation_e pace_fpu_op(input logic [1:0] mode);
-    unique case (mode)
-      2'b01: pace_fpu_op = fpnew_pkg::PACE_INV;
-      2'b10: pace_fpu_op = fpnew_pkg::PACE_SQRT;
-      2'b11: pace_fpu_op = fpnew_pkg::PACE_RSQRT;
-      default: pace_fpu_op = fpnew_pkg::PWPA;
-    endcase
-  endfunction
-
-  function automatic fpnew_pkg::pace_mode_t pace_fpu_mode(
-    input fpnew_pkg::pace_mode_t core_mode,
-    input logic pace_valid,
-    input logic [2:0] mode
-  );
-    pace_fpu_mode = '0;
-    pace_fpu_mode.degree = core_mode.degree;
-    pace_fpu_mode.enable = pace_valid;
-    pace_fpu_mode.extend = pace_valid & mode[2];
-  endfunction
 
   // -------------------
   // Signal declarations

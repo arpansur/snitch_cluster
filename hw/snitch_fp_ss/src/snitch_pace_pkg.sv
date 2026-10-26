@@ -4,6 +4,9 @@
 
 package snitch_pace_pkg;
 
+  import fpnew_pkg::*;
+  import snitch_pkg::*;
+
   /// Configuration shared by the Snitch PACE integration.
   typedef struct packed {
     logic        enable;
@@ -20,6 +23,73 @@ package snitch_pace_pkg;
   function automatic int unsigned pace_param_count(pace_cfg_t cfg);
     return cfg.enable ?
       ((cfg.degree + 1) * cfg.parts + cfg.parts - 1 + 2 * cfg.eps) : 0;
+  endfunction
+
+  function automatic logic is_pace_instr(input logic [31:0] instr);
+    unique casez (instr)
+      snitch_riscv_instr::PACE_PWPA_S, snitch_riscv_instr::PACE_INV_S,
+      snitch_riscv_instr::PACE_SQRT_S, snitch_riscv_instr::PACE_RSQRT_S,
+      snitch_riscv_instr::PACE_PWPA_H, snitch_riscv_instr::PACE_INV_H,
+      snitch_riscv_instr::PACE_SQRT_H, snitch_riscv_instr::PACE_RSQRT_H:
+        is_pace_instr = 1'b1;
+      default: is_pace_instr = 1'b0;
+    endcase
+  endfunction
+
+  function automatic logic is_vpace_instr(input logic [31:0] instr);
+    unique casez (instr)
+      snitch_riscv_instr::VPACE_PWPA_S, snitch_riscv_instr::VPACE_INV_S,
+      snitch_riscv_instr::VPACE_SQRT_S, snitch_riscv_instr::VPACE_RSQRT_S,
+      snitch_riscv_instr::VPACE_PWPA_H, snitch_riscv_instr::VPACE_INV_H,
+      snitch_riscv_instr::VPACE_SQRT_H, snitch_riscv_instr::VPACE_RSQRT_H:
+        is_vpace_instr = 1'b1;
+      default: is_vpace_instr = 1'b0;
+    endcase
+  endfunction
+
+  function automatic logic is_pace_single_instr(input logic [31:0] instr);
+    unique casez (instr)
+      snitch_riscv_instr::PACE_PWPA_S, snitch_riscv_instr::PACE_INV_S,
+      snitch_riscv_instr::PACE_SQRT_S, snitch_riscv_instr::PACE_RSQRT_S,
+      snitch_riscv_instr::VPACE_PWPA_S, snitch_riscv_instr::VPACE_INV_S,
+      snitch_riscv_instr::VPACE_SQRT_S, snitch_riscv_instr::VPACE_RSQRT_S:
+        is_pace_single_instr = 1'b1;
+      default: is_pace_single_instr = 1'b0;
+    endcase
+  endfunction
+
+  function automatic logic is_pace_half_instr(input logic [31:0] instr);
+    unique casez (instr)
+      snitch_riscv_instr::PACE_PWPA_H, snitch_riscv_instr::PACE_INV_H,
+      snitch_riscv_instr::PACE_SQRT_H, snitch_riscv_instr::PACE_RSQRT_H,
+      snitch_riscv_instr::VPACE_PWPA_H, snitch_riscv_instr::VPACE_INV_H,
+      snitch_riscv_instr::VPACE_SQRT_H, snitch_riscv_instr::VPACE_RSQRT_H:
+        is_pace_half_instr = 1'b1;
+      default: is_pace_half_instr = 1'b0;
+    endcase
+  endfunction
+
+  function automatic logic [2:0] pace_mode_bits(input logic [31:0] instr);
+    if (is_pace_instr(instr)) return instr[14:12];
+    if (is_vpace_instr(instr)) return instr[27:25];
+    return 3'b000;
+  endfunction
+
+  function automatic operation_e pace_fpu_op(input logic [1:0] mode);
+    unique case (mode)
+      2'b01: return PACE_INV;
+      2'b10: return PACE_SQRT;
+      2'b11: return PACE_RSQRT;
+      default: return PWPA;
+    endcase
+  endfunction
+
+  function automatic pace_mode_t pace_fpu_mode(
+    input pace_mode_t core_mode, input logic pace_valid, input logic [2:0] mode);
+    pace_fpu_mode = '0;
+    pace_fpu_mode.degree = core_mode.degree;
+    pace_fpu_mode.enable = pace_valid;
+    pace_fpu_mode.extend = pace_valid & mode[2];
   endfunction
 
 endpackage
