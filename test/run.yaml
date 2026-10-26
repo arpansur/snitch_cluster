@@ -139,3 +139,23 @@ runs:
   - elf: ../sw/kernels/misc/log/build/log.elf
   - elf: ../sw/kernels/misc/sort/build/sort.elf
     cmd: [../sw/kernels/misc/sort/scripts/verify.py, "${sim_bin}", "${elf}"]
+  - elf: ../sw/kernels/pace/elementwise/build/gelu_fp16_scalar/pace_elementwise_gelu_fp16_scalar.elf
+    cmd: [../sw/kernels/pace/elementwise/scripts/verify.py, "${sim_bin}", "${elf}"]
+  - elf: ../sw/kernels/pace/elementwise/build/gelu_fp16_vector/pace_elementwise_gelu_fp16_vector.elf
+    cmd: [../sw/kernels/pace/elementwise/scripts/verify.py, "${sim_bin}", "${elf}"]
+  - elf: ../sw/kernels/pace/elementwise/build/gelu_fp32_scalar/pace_elementwise_gelu_fp32_scalar.elf
+    cmd: [../sw/kernels/pace/elementwise/scripts/verify.py, "${sim_bin}", "${elf}"]
+  - elf: ../sw/kernels/pace/elementwise/build/gelu_fp32_vector/pace_elementwise_gelu_fp32_vector.elf
+    cmd: [../sw/kernels/pace/elementwise/scripts/verify.py, "${sim_bin}", "${elf}"]
+  - elf: ../sw/kernels/pace/elementwise/build/inv_fp16_scalar/pace_elementwise_inv_fp16_scalar.elf
+    cmd: [../sw/kernels/pace/elementwise/scripts/verify.py, "${sim_bin}", "${elf}"]
+  - elf: ../sw/kernels/pace/elementwise/build/inv_fp16_vector/pace_elementwise_inv_fp16_vector.elf
+    cmd: [../sw/kernels/pace/elementwise/scripts/verify.py, "${sim_bin}", "${elf}"]
+  - elf: ../sw/kernels/pace/elementwise/build/inv_bfp16_vector/pace_elementwise_inv_bfp16_vector.elf
+    cmd: [../sw/kernels/pace/elementwise/scripts/verify.py, "${sim_bin}", "${elf}"]
+  - elf: ../sw/kernels/pace/elementwise/build/inv_fp32_scalar/pace_elementwise_inv_fp32_scalar.elf
+    cmd: [../sw/kernels/pace/elementwise/scripts/verify.py, "${sim_bin}", "${elf}"]
+  - elf: ../sw/kernels/pace/elementwise/build/inv_fp32_vector/pace_elementwise_inv_fp32_vector.elf
+    cmd: [../sw/kernels/pace/elementwise/scripts/verify.py, "${sim_bin}", "${elf}"]
+  - elf: ../sw/kernels/pace/softmax/build/pace_softmax.elf
+    cmd: [../sw/kernels/pace/softmax/scripts/verify.py, "${sim_bin}", "${elf}"]
