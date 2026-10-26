@@ -886,13 +886,7 @@ module snitch_cluster
     axi_pace_mem #(
       .axi_req_t (axi_slv_dma_req_t),
       .axi_resp_t (axi_slv_dma_resp_t),
-      .pace_cfg_t (pace_cfg_t),
       .PaceCfg (PaceCfg),
-      .PaceEnable (PaceEnable),
-      .PaceDegree (PaceDegree),
-      .PaceParts (PaceParts),
-      .PaceEps (PaceEps),
-      .PaceDataWidth (PaceDataWidth),
       .AddrWidth (PhysicalAddrWidth),
       .DataWidth (WideDataWidth),
       .IdWidth (WideIdWidthOut),

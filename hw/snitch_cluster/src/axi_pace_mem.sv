@@ -18,34 +18,20 @@
 module axi_pace_mem #(
   parameter type         axi_req_t  = logic,
   parameter type         axi_resp_t = logic,
-  parameter type         pace_cfg_t = logic,
-  parameter bit          PaceEnable = 1'b0,
-  parameter int unsigned PaceDegree = 0,
-  parameter int unsigned PaceParts  = 0,
-  parameter int unsigned PaceEps    = 0,
-  parameter int unsigned PaceDataWidth = 0,
-  parameter pace_cfg_t   PaceCfg    = pace_cfg_t'({
-    PaceEnable,
-    32'd0,
-    PaceDegree,
-    PaceParts,
-    PaceEps,
-    PaceDataWidth,
-    32'd0,
-    32'd0,
-    32'd0
-  }),
+  parameter snitch_pace_pkg::pace_cfg_t PaceCfg = '0,
   parameter int unsigned AddrWidth  = 0,
   parameter int unsigned DataWidth  = 0,
   parameter int unsigned IdWidth    = 0,
   parameter int unsigned NumBanks   = 1,
   parameter int unsigned BufDepth   = 1,
   localparam int unsigned EffectivePaceDataWidth =
-      (PaceDataWidth > 0) ? PaceDataWidth : 1,
+      (PaceCfg.data_width > 0) ? PaceCfg.data_width : 1,
   localparam int unsigned PaceCoeffWidth =
-      PaceEnable ? ((PaceDegree + 1) * PaceParts * PaceDataWidth) : 0,
-  localparam int unsigned PaceBoundWidth = PaceEnable ? ((PaceParts - 1) * PaceDataWidth) : 0,
-  localparam int unsigned PaceEpsWidth   = PaceEnable ? (2 * PaceDataWidth * PaceEps) : 0,
+      PaceCfg.enable ? ((PaceCfg.degree + 1) * PaceCfg.parts * PaceCfg.data_width) : 0,
+  localparam int unsigned PaceBoundWidth = PaceCfg.enable ?
+      ((PaceCfg.parts - 1) * PaceCfg.data_width) : 0,
+  localparam int unsigned PaceEpsWidth   = PaceCfg.enable ?
+      (2 * PaceCfg.data_width * PaceCfg.eps) : 0,
   localparam int unsigned PaceParamWidth = PaceCoeffWidth + PaceBoundWidth + PaceEpsWidth,
   localparam type addr_t       = logic [AddrWidth-1:0],
   localparam type mem_data_t   = logic [DataWidth/NumBanks-1:0],

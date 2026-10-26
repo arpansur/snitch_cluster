@@ -159,6 +159,7 @@ sources:
   # snitch_fp_ss
   - files:
       # Level 0
+      - hw/snitch_fp_ss/src/snitch_pace_pkg.sv
       - hw/snitch_fp_ss/src/snitch_fpu.sv
       - hw/snitch_fp_ss/src/snitch_sequencer.sv
       # Level 1
