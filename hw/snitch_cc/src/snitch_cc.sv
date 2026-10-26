@@ -788,8 +788,6 @@ module snitch_cc
       .x_register_t       (x_register_t),
       .x_commit_t         (x_commit_t),
       .x_result_t         (x_result_t),
-      .dca_req_t          (dca_req_chan_t),
-      .dca_rsp_t          (dca_rsp_chan_t),
       .pace_cfg_t         (snitch_pace_pkg::pace_cfg_t),
       .PaceCfg            (PaceCfg)
     ) i_snitch_spatz (
