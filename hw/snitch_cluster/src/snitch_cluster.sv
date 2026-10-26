@@ -647,7 +647,8 @@ module snitch_cluster
 
   addr_t pace_mem_start_address, pace_mem_end_address;
   assign pace_mem_start_address = zero_mem_end_address;
-  assign pace_mem_end_address   = zero_mem_end_address + PaceCfg.memory_size * 1024;
+  assign pace_mem_end_address   = zero_mem_end_address +
+    snitch_pace_pkg::pace_memory_size(PaceCfg) * 1024;
 
   addr_t ext_mem_start_address, ext_mem_end_address;
   assign ext_mem_start_address = pace_mem_end_address;
@@ -670,7 +671,8 @@ module snitch_cluster
   localparam addr_t ZeroMemAliasEnd   = PeriphAliasEnd + ZeroMemorySize * 1024;
 
   localparam addr_t PaceMemAliasStart = ZeroMemAliasEnd;
-  localparam addr_t PaceMemAliasEnd   = ZeroMemAliasEnd + PaceCfg.memory_size * 1024;
+  localparam addr_t PaceMemAliasEnd = ZeroMemAliasEnd +
+    snitch_pace_pkg::pace_memory_size(PaceCfg) * 1024;
 
   localparam addr_t ExtAliasStart = PaceMemAliasEnd;
   localparam addr_t ExtAliasEnd   = ExtAliasStart + ExtMemorySize * 1024;
@@ -736,8 +738,8 @@ module snitch_cluster
   logic [NrCores-1:0] cl_interrupt;
   logic [NrCores-1:0] barrier_in;
   logic barrier_out;
-  logic [cc_pkg::iomsb(PaceCfg.param_width):0] pace_param;
-  logic [cc_pkg::iomsb(PaceCfg.param_width):0] pace_param_from_mem;
+  logic [cc_pkg::iomsb(snitch_pace_pkg::pace_param_width(PaceCfg)):0] pace_param;
+  logic [cc_pkg::iomsb(snitch_pace_pkg::pace_param_width(PaceCfg)):0] pace_param_from_mem;
 
   // -------------
   // DMA Subsystem
@@ -882,7 +884,7 @@ module snitch_cluster
     .axi_resp_o (wide_axi_slv_rsp[ZeroMemory])
   );
 
-    if (PaceCfg.enable) begin : gen_axi_pacemem
+    if (snitch_pace_pkg::pace_enable(PaceCfg)) begin : gen_axi_pacemem
     axi_pace_mem #(
       .axi_req_t (axi_slv_dma_req_t),
       .axi_resp_t (axi_slv_dma_resp_t),
@@ -918,7 +920,7 @@ module snitch_cluster
     );
   end
 
-  assign pace_param = PaceCfg.enable ? pace_param_from_mem : '0;
+  assign pace_param = snitch_pace_pkg::pace_enable(PaceCfg) ? pace_param_from_mem : '0;
 
   addr_t [1:0] ext_dma_req_q_addr_nontrunc;
 

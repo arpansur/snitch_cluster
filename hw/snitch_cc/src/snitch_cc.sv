@@ -169,7 +169,7 @@ module snitch_cc
   // Cluster HW barrier
   output logic                              barrier_o,
   input  logic                              barrier_i,
-  input  logic [cc_pkg::iomsb(PaceCfg.param_width):0] pace_param_i,
+  input  logic [cc_pkg::iomsb(snitch_pace_pkg::pace_param_width(PaceCfg)):0] pace_param_i,
   // Direct Compute Access (DCA) interface
   input  dca_req_t                          dca_req_i,
   output dca_rsp_t                          dca_rsp_o
@@ -221,7 +221,7 @@ module snitch_cc
   fpnew_pkg::status_t    fpu_status, spatz_fpu_status, fpss_fpu_status;
   fpnew_pkg::pace_mode_t fpu_pace_mode;
   fpnew_pkg::pace_mode_t spatz_pace_mode;
-  logic [cc_pkg::iomsb(PaceCfg.param_width):0] spatz_pace_param;
+  logic [cc_pkg::iomsb(snitch_pace_pkg::pace_param_width(PaceCfg)):0] spatz_pace_param;
 
   assign spatz_pace_mode  = fpu_pace_mode;
   assign spatz_pace_param = pace_param_i;

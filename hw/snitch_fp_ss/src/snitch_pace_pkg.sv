@@ -25,6 +25,42 @@ package snitch_pace_pkg;
       ((cfg.degree + 1) * cfg.parts + cfg.parts - 1 + 2 * cfg.eps) : 0;
   endfunction
 
+  function automatic bit pace_enable(pace_cfg_t cfg);
+    return cfg.enable;
+  endfunction
+
+  function automatic int unsigned pace_memory_size(pace_cfg_t cfg);
+    return cfg.memory_size;
+  endfunction
+
+  function automatic int unsigned pace_param_width(pace_cfg_t cfg);
+    return cfg.param_width;
+  endfunction
+
+  function automatic int unsigned pace_degree(pace_cfg_t cfg);
+    return cfg.degree;
+  endfunction
+
+  function automatic int unsigned pace_parts(pace_cfg_t cfg);
+    return cfg.parts;
+  endfunction
+
+  function automatic int unsigned pace_eps(pace_cfg_t cfg);
+    return cfg.eps;
+  endfunction
+
+  function automatic int unsigned pace_data_width(pace_cfg_t cfg);
+    return cfg.data_width;
+  endfunction
+
+  function automatic int unsigned pace_fmt_config(pace_cfg_t cfg);
+    return cfg.fmt_config;
+  endfunction
+
+  function automatic int unsigned pace_pipe_dist(pace_cfg_t cfg);
+    return cfg.pipe_dist;
+  endfunction
+
   function automatic logic is_pace_instr(input logic [31:0] instr);
     unique casez (instr)
       snitch_riscv_instr::PACE_PWPA_S, snitch_riscv_instr::PACE_INV_S,

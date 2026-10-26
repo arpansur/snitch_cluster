@@ -26,7 +26,7 @@ module snitch_fpu import snitch_pkg::*; #(
   input  logic        clk_i,
   input  logic        rst_ni,
   input  logic [31:0] hart_id_i,
-  input  logic [cc_pkg::iomsb(PaceCfg.param_width):0] pace_param_i,
+  input  logic [cc_pkg::iomsb(snitch_pace_pkg::pace_param_width(PaceCfg)):0] pace_param_i,
   input  fpnew_pkg::pace_mode_t pace_mode_i,
   input  fpu_req_t    req_i,
   output fpu_rsp_t    rsp_o
@@ -55,16 +55,17 @@ module snitch_fpu import snitch_pkg::*; #(
   localparam fpnew_pkg::fmt_logic_t FpFmtMask = {
     RVF, RVD, Zfh, XF8, XF16ALT, XF8ALT, 1'b0, 1'b0, 1'b0
   };
-  localparam fpnew_pkg::fmt_logic_t PaceFmtMask = PaceCfg.enable ?
-    (fpnew_pkg::fmt_logic_t'(PaceCfg.fmt_config) & FpFmtMask) : '0;
+  localparam fpnew_pkg::fmt_logic_t PaceFmtMask =
+    snitch_pace_pkg::pace_enable(PaceCfg) ?
+    (fpnew_pkg::fmt_logic_t'(snitch_pace_pkg::pace_fmt_config(PaceCfg)) & FpFmtMask) : '0;
 
   localparam fpnew_pkg::pace_features_t PaceFeatures = '{
-    PaceDegree:      PaceCfg.degree,
-    PaceParts:       PaceCfg.parts,
-    PaceEps:         PaceCfg.eps,
-    PaceDataWidth:   PaceCfg.data_width,
-    PaceParamWidth:  PaceCfg.param_width,
-    PaceBstPipeRegs: fpnew_pkg::pace_pipe_t'(PaceCfg.pipe_dist),
+    PaceDegree:      snitch_pace_pkg::pace_degree(PaceCfg),
+    PaceParts:       snitch_pace_pkg::pace_parts(PaceCfg),
+    PaceEps:         snitch_pace_pkg::pace_eps(PaceCfg),
+    PaceDataWidth:   snitch_pace_pkg::pace_data_width(PaceCfg),
+    PaceParamWidth:  snitch_pace_pkg::pace_param_width(PaceCfg),
+    PaceBstPipeRegs: fpnew_pkg::pace_pipe_t'(snitch_pace_pkg::pace_pipe_dist(PaceCfg)),
     FmtConfig:       PaceFmtMask
   };
 

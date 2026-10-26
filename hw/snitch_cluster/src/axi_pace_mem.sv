@@ -25,13 +25,19 @@ module axi_pace_mem #(
   parameter int unsigned NumBanks   = 1,
   parameter int unsigned BufDepth   = 1,
   localparam int unsigned EffectivePaceDataWidth =
-      (PaceCfg.data_width > 0) ? PaceCfg.data_width : 1,
+      (snitch_pace_pkg::pace_data_width(PaceCfg) > 0) ?
+      snitch_pace_pkg::pace_data_width(PaceCfg) : 1,
   localparam int unsigned PaceCoeffWidth =
-      PaceCfg.enable ? ((PaceCfg.degree + 1) * PaceCfg.parts * PaceCfg.data_width) : 0,
-  localparam int unsigned PaceBoundWidth = PaceCfg.enable ?
-      ((PaceCfg.parts - 1) * PaceCfg.data_width) : 0,
-  localparam int unsigned PaceEpsWidth   = PaceCfg.enable ?
-      (2 * PaceCfg.data_width * PaceCfg.eps) : 0,
+      snitch_pace_pkg::pace_enable(PaceCfg) ?
+      ((snitch_pace_pkg::pace_degree(PaceCfg) + 1) *
+       snitch_pace_pkg::pace_parts(PaceCfg) *
+       snitch_pace_pkg::pace_data_width(PaceCfg)) : 0,
+  localparam int unsigned PaceBoundWidth = snitch_pace_pkg::pace_enable(PaceCfg) ?
+      ((snitch_pace_pkg::pace_parts(PaceCfg) - 1) *
+       snitch_pace_pkg::pace_data_width(PaceCfg)) : 0,
+  localparam int unsigned PaceEpsWidth = snitch_pace_pkg::pace_enable(PaceCfg) ?
+      (2 * snitch_pace_pkg::pace_data_width(PaceCfg) *
+       snitch_pace_pkg::pace_eps(PaceCfg)) : 0,
   localparam int unsigned PaceParamWidth = PaceCoeffWidth + PaceBoundWidth + PaceEpsWidth,
   localparam type addr_t       = logic [AddrWidth-1:0],
   localparam type mem_data_t   = logic [DataWidth/NumBanks-1:0],
@@ -83,7 +89,8 @@ module axi_pace_mem #(
   `FF(mem_rvalid, mem_we & mem_req & mem_gnt, 1'b0, clk_i, rst_ni)
 
 
-  `ASSERT_INIT(PACE_EPS_VALUE, (PaceCfg.eps == 0) | (PaceCfg.eps == 1),
+  `ASSERT_INIT(PACE_EPS_VALUE, (snitch_pace_pkg::pace_eps(PaceCfg) == 0) |
+      (snitch_pace_pkg::pace_eps(PaceCfg) == 1),
                "Only PaceEps=0 or 1 is supported it is an enable")
 
   localparam int unsigned TotalWords =
