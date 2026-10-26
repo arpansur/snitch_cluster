@@ -61,6 +61,7 @@ ${',' if not loop.last else ''}
 
 // verilog_lint: waive-start package-filename
 package snitch_cluster_wrapper_pkg;
+  import snitch_pace_pkg::*;
 
   localparam int unsigned NrCores = ${cfg['cluster']['nr_cores']};
   localparam int unsigned NrHives = ${cfg['cluster']['nr_hives']};
@@ -435,19 +436,8 @@ ${ssr_cfg(core, '{reg_idx}', '/*None*/ 0', ',')}\
   localparam int unsigned PaceFmtConfig = PaceEnable ? ${cfg['cluster'].get('pace_fmt_config', 40)} : 0;
   localparam int unsigned PacePipeDist = PaceEnable ? ${cfg['cluster'].get('pace_pipe_dist', 4)} : 0;
   localparam int unsigned PaceEps = PaceEnable ? ${cfg['cluster'].get('pace_eps', 1)} : 0;
-  localparam int unsigned PaceParamWidth =
-    PaceEnable ? (((PaceDegree + 1) * PaceParts + PaceParts - 1 + 2 * PaceEps) * PaceDataWidth) : 0;
-  typedef struct packed {
-    logic        enable;
-    logic [31:0] memory_size;
-    logic [31:0] degree;
-    logic [31:0] parts;
-    logic [31:0] eps;
-    logic [31:0] data_width;
-    logic [31:0] param_width;
-    logic [31:0] fmt_config;
-    logic [31:0] pipe_dist;
-  } pace_cfg_t;
+  localparam int unsigned PaceParamWidth = PaceEnable ?
+    (((PaceDegree + 1) * PaceParts + PaceParts - 1 + 2 * PaceEps) * PaceDataWidth) : 0;
   localparam pace_cfg_t PaceCfg = '{
     enable: PaceEnable,
     memory_size: PaceMemorySize,
@@ -459,6 +449,5 @@ ${ssr_cfg(core, '{reg_idx}', '/*None*/ 0', ',')}\
     fmt_config: PaceFmtConfig,
     pipe_dist: PacePipeDist
   };
-
 endpackage
 // verilog_lint: waive-stop package-filename

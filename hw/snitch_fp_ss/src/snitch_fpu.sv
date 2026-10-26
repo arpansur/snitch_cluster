@@ -17,27 +17,7 @@ module snitch_fpu import snitch_pkg::*; #(
   parameter int unsigned FLEN           = 0,
   parameter bit          RegisterFpuReq = 0,
   parameter bit          RegisterFpuRsp = 0,
-  parameter type         pace_cfg_t     = logic,
-  parameter bit          PaceEnable     = 1'b0,
-  parameter int unsigned PaceMemorySize = 0,
-  parameter int unsigned PaceDegree     = 0,
-  parameter int unsigned PaceParts      = 0,
-  parameter int unsigned PaceEps        = 0,
-  parameter int unsigned PaceDataWidth  = 0,
-  parameter int unsigned PaceParamWidth = 0,
-  parameter int unsigned PaceFmtConfig  = 0,
-  parameter int unsigned PacePipeDist   = 0,
-  parameter pace_cfg_t   PaceCfg        = pace_cfg_t'({
-    PaceEnable,
-    PaceMemorySize,
-    PaceDegree,
-    PaceParts,
-    PaceEps,
-    PaceDataWidth,
-    PaceParamWidth,
-    PaceFmtConfig,
-    PacePipeDist
-  }),
+  parameter snitch_pace_pkg::pace_cfg_t PaceCfg = '0,
   parameter type         TagType        = logic,
   // Derived parameters *do not override*
   localparam type        fpu_req_t      = `FPU_REQ_STRUCT(FLEN, TagType),
@@ -46,7 +26,7 @@ module snitch_fpu import snitch_pkg::*; #(
   input  logic        clk_i,
   input  logic        rst_ni,
   input  logic [31:0] hart_id_i,
-  input  logic [cc_pkg::iomsb(PaceParamWidth):0] pace_param_i,
+  input  logic [cc_pkg::iomsb(PaceCfg.param_width):0] pace_param_i,
   input  fpnew_pkg::pace_mode_t pace_mode_i,
   input  fpu_req_t    req_i,
   output fpu_rsp_t    rsp_o
@@ -76,15 +56,15 @@ module snitch_fpu import snitch_pkg::*; #(
     RVF, RVD, Zfh, XF8, XF16ALT, XF8ALT, 1'b0, 1'b0, 1'b0
   };
   localparam fpnew_pkg::fmt_logic_t PaceFmtMask =
-    fpnew_pkg::fmt_logic_t'(PaceFmtConfig) & FpFmtMask;
+    fpnew_pkg::fmt_logic_t'(PaceCfg.fmt_config) & FpFmtMask;
 
   localparam fpnew_pkg::pace_features_t PaceFeatures = '{
-    PaceDegree:      PaceDegree,
-    PaceParts:       PaceParts,
-    PaceEps:         PaceEps,
-    PaceDataWidth:   PaceDataWidth,
-    PaceParamWidth:  PaceParamWidth,
-    PaceBstPipeRegs: fpnew_pkg::pace_pipe_t'(PacePipeDist),
+    PaceDegree:      PaceCfg.degree,
+    PaceParts:       PaceCfg.parts,
+    PaceEps:         PaceCfg.eps,
+    PaceDataWidth:   PaceCfg.data_width,
+    PaceParamWidth:  PaceCfg.param_width,
+    PaceBstPipeRegs: fpnew_pkg::pace_pipe_t'(PaceCfg.pipe_dist),
     FmtConfig:       PaceFmtMask
   };
 

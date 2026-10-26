@@ -1269,14 +1269,6 @@ module snitch_cluster
       .CollectiveWidth (CollectiveWidth),
       .pace_cfg_t (pace_cfg_t),
       .PaceCfg (PaceCfg),
-      .PaceEnable (PaceEnable),
-      .PaceDegree (PaceDegree),
-      .PaceParts (PaceParts),
-      .PaceEps (PaceEps),
-      .PaceDataWidth (PaceDataWidth),
-      .PaceParamWidth (PaceParamWidth),
-      .PaceFmtConfig (PaceFmtConfig),
-      .PacePipeDist (PacePipeDist),
       .EnableDca (CoreEnableDca)
     ) i_snitch_cc (
       .clk_i,
