@@ -55,8 +55,8 @@ module snitch_fpu import snitch_pkg::*; #(
   localparam fpnew_pkg::fmt_logic_t FpFmtMask = {
     RVF, RVD, Zfh, XF8, XF16ALT, XF8ALT, 1'b0, 1'b0, 1'b0
   };
-  localparam fpnew_pkg::fmt_logic_t PaceFmtMask =
-    fpnew_pkg::fmt_logic_t'(PaceCfg.fmt_config) & FpFmtMask;
+  localparam fpnew_pkg::fmt_logic_t PaceFmtMask = PaceCfg.enable ?
+    (fpnew_pkg::fmt_logic_t'(PaceCfg.fmt_config) & FpFmtMask) : '0;
 
   localparam fpnew_pkg::pace_features_t PaceFeatures = '{
     PaceDegree:      PaceCfg.degree,
