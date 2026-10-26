@@ -429,13 +429,13 @@ ${ssr_cfg(core, '{reg_idx}', '/*None*/ 0', ',')}\
 
   // PACE configuration
   localparam bit PaceEnable = ${int(cfg['cluster'].get('pace_enable', 0))};
-  localparam int unsigned PaceMemorySize = PaceEnable ? ${cfg['cluster'].get('pace_mem_size', 64)} : 0;
-  localparam int unsigned PaceDegree = PaceEnable ? ${cfg['cluster'].get('pace_degree', 2)} : 0;
-  localparam int unsigned PaceParts = PaceEnable ? ${cfg['cluster'].get('pace_parts', 16)} : 0;
-  localparam int unsigned PaceDataWidth = PaceEnable ? ${cfg['cluster'].get('pace_data_width', 32)} : 0;
-  localparam int unsigned PaceFmtConfig = PaceEnable ? ${cfg['cluster'].get('pace_fmt_config', 40)} : 0;
-  localparam int unsigned PacePipeDist = PaceEnable ? ${cfg['cluster'].get('pace_pipe_dist', 4)} : 0;
-  localparam int unsigned PaceEps = PaceEnable ? ${cfg['cluster'].get('pace_eps', 1)} : 0;
+  localparam int unsigned PaceMemorySize = ${cfg['cluster'].get('pace_mem_size', 64)};
+  localparam int unsigned PaceDegree = ${cfg['cluster'].get('pace_degree', 2)};
+  localparam int unsigned PaceParts = ${cfg['cluster'].get('pace_parts', 16)};
+  localparam int unsigned PaceDataWidth = ${cfg['cluster'].get('pace_data_width', 32)};
+  localparam int unsigned PaceFmtConfig = ${cfg['cluster'].get('pace_fmt_config', 40)};
+  localparam int unsigned PacePipeDist = ${cfg['cluster'].get('pace_pipe_dist', 4)};
+  localparam int unsigned PaceEps = ${cfg['cluster'].get('pace_eps', 1)};
   localparam int unsigned PaceParamWidth = PaceEnable ?
     (((PaceDegree + 1) * PaceParts + PaceParts - 1 + 2 * PaceEps) * PaceDataWidth) : 0;
   localparam pace_cfg_t PaceCfg = '{
