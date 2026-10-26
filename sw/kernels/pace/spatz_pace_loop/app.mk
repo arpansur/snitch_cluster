@@ -9,7 +9,9 @@ SRCS             := $(SRC_DIR)/main.c
 
 $(APP)_SCRIPT_DIR ?= $(SN_ROOT)/sw/kernels/pace/elementwise/scripts
 
-include $(SN_ROOT)/sw/kernels/pace/common.mk
+include $(SN_ROOT)/sw/kernels/datagen.mk
+$(APP)_INCDIRS += $(SN_ROOT)/sw/kernels/pace/common
+include $(SN_ROOT)/sw/kernels/common.mk
 
 APP              := spatz_pace_loop_pwpa_fp16
 $(APP)_BUILD_DIR ?= $(SN_ROOT)/sw/kernels/pace/spatz_pace_loop/build/pwpa_fp16
@@ -19,7 +21,9 @@ SRCS             := $(SRC_DIR)/main.c
 
 $(APP)_SCRIPT_DIR ?= $(SN_ROOT)/sw/kernels/pace/elementwise/scripts
 
-include $(SN_ROOT)/sw/kernels/pace/common.mk
+include $(SN_ROOT)/sw/kernels/datagen.mk
+$(APP)_INCDIRS += $(SN_ROOT)/sw/kernels/pace/common
+include $(SN_ROOT)/sw/kernels/common.mk
 
 APP              := spatz_pace_loop_pwpa_bfp16
 $(APP)_BUILD_DIR ?= $(SN_ROOT)/sw/kernels/pace/spatz_pace_loop/build/pwpa_bfp16
@@ -29,4 +33,6 @@ SRCS             := $(SRC_DIR)/main.c
 
 $(APP)_SCRIPT_DIR ?= $(SN_ROOT)/sw/kernels/pace/elementwise/scripts
 
-include $(SN_ROOT)/sw/kernels/pace/common.mk
+include $(SN_ROOT)/sw/kernels/datagen.mk
+$(APP)_INCDIRS += $(SN_ROOT)/sw/kernels/pace/common
+include $(SN_ROOT)/sw/kernels/common.mk

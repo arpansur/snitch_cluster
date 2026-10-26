@@ -11,4 +11,6 @@ $(APP)_BUILD_DIR ?= $(SN_ROOT)/sw/kernels/pace/elementwise/build
 $(APP)_DATA_CFG  ?= $(PACE_ELEMENTWISE_DATA_DIR)/params.json
 SRC_DIR          := $(PACE_ELEMENTWISE_SRC_DIR)
 SRCS             := $(PACE_ELEMENTWISE_SRCS)
-include $(SN_ROOT)/sw/kernels/pace/common.mk
+include $(SN_ROOT)/sw/kernels/datagen.mk
+$(APP)_INCDIRS += $(SN_ROOT)/sw/kernels/pace/common
+include $(SN_ROOT)/sw/kernels/common.mk

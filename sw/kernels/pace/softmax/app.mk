@@ -7,4 +7,6 @@ $(APP)_BUILD_DIR ?= $(SN_ROOT)/sw/kernels/pace/softmax/build
 SRC_DIR          := $(SN_ROOT)/sw/kernels/pace/softmax/src
 SRCS             := $(SRC_DIR)/main.c
 
-include $(SN_ROOT)/sw/kernels/pace/common.mk
+include $(SN_ROOT)/sw/kernels/datagen.mk
+$(APP)_INCDIRS += $(SN_ROOT)/sw/kernels/pace/common
+include $(SN_ROOT)/sw/kernels/common.mk
