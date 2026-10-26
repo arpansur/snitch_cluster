@@ -66,6 +66,7 @@ module snitch_fp_ss
   input  fpnew_pkg::fmt_mode_t  fpu_fmt_mode_i,
   output fpnew_pkg::status_t    fpu_status_o,
   input  fpnew_pkg::pace_mode_t fpu_pace_mode_i,
+  input  logic [cc_pkg::iomsb(PaceCfg.param_width):0] fpu_pace_param_i,
   // SSR Interface
   output logic  [2:0][4:0] ssr_raddr_o,
   input  data_t [2:0]      ssr_rdata_i,
@@ -89,7 +90,6 @@ module snitch_fp_ss
   input logic              en_copift_i,
   // Core event strobes
   output core_events_t core_events_o,
-  input  logic [cc_pkg::iomsb(PaceCfg.param_width):0] fpu_pace_param_i,
   // Direct Compute Access (DCA) interface
   input  dca_req_t         dca_req_i,
   output dca_rsp_t         dca_rsp_o
