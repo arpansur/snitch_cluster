@@ -223,8 +223,8 @@ module snitch_cc
   fpnew_pkg::pace_mode_t spatz_pace_mode;
   logic [cc_pkg::iomsb(PaceCfg.param_width):0] spatz_pace_param;
 
-  assign spatz_pace_mode  = PaceCfg.enable ? fpu_pace_mode : '0;
-  assign spatz_pace_param = PaceCfg.enable ? pace_param_i  : '0;
+  assign spatz_pace_mode  = fpu_pace_mode;
+  assign spatz_pace_param = pace_param_i;
 
   // Consistency Address Queue (CAQ) interface
   logic caq_pvalid, caq_pvalid_q;
