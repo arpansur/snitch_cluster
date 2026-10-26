@@ -452,6 +452,7 @@ hw/bootrom/snitch_bootrom.sv
 hw/snitch_cluster/src/snitch_barrier.sv
 hw/snitch_cluster/src/snitch_tcdm_interconnect.sv
 hw/snitch_cluster/src/snitch_clkdiv2.sv
+hw/snitch_cluster/src/axi_pace_mem.sv
 hw/snitch_cluster/src/snitch_hive.sv
 hw/snitch_cluster/src/snitch_cluster.sv
 hw/generated/snitch_cluster_wrapper_pkg.sv
