@@ -771,7 +771,7 @@ module snitch_cc
   ///////////
 
   if (IsaCfg.RVV) begin : gen_spatz
-    snitch_spatz #(
+    spatz #(
       .NrMemPorts         (NumSpatzMemPorts),
       .NumOutstandingLoads(NumSpatzOutstandingLoads),
       .FPUImplementation  (FPUImplementation),
@@ -791,8 +791,7 @@ module snitch_cc
       .dca_req_t          (dca_req_chan_t),
       .dca_rsp_t          (dca_rsp_chan_t),
       .pace_cfg_t         (snitch_pace_pkg::pace_cfg_t),
-      .PaceCfg            (PaceCfg),
-      .PaceParamWidth     (PaceCfg.param_width)
+      .PaceCfg            (PaceCfg)
     ) i_snitch_spatz (
       .clk_i                   (clk_i),
       .rst_ni                  (rst_ni),

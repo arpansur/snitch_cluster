@@ -174,7 +174,6 @@ sources:
       - hw/snitch_cc/src/snitch_ssr_subsystem.sv
   - files:
       # Level 2
-      - hw/snitch_cc/src/snitch_spatz.sv
   - files:
       # Level 3
       - hw/snitch_cc/src/snitch_cc.sv
